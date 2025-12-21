@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(tree:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(where *.go:*)",
+      "Bash(cat:*)",
+      "WebSearch",
+      "Bash(go mod tidy:*)",
+      "Bash(go get:*)",
+      "Bash(go test:*)",
+      "Bash(go doc:*)",
+      "Bash(go tool cover:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(go list:*)",
+      "Bash(go run:*)",
+      "Bash(go build:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(./fzjjyz.exe:*)",
+      "Bash(../fzjjyz.exe keygen:*)",
+      "Bash(../fzjjyz.exe encrypt:*)",
+      "Bash(../fzjjyz.exe decrypt:*)",
+      "Bash(../fzjjyz.exe info:*)",
+      "Bash(../fzjjyz.exe keymanage:*)"
+    ]
+  }
+}
