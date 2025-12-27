@@ -24,7 +24,16 @@
       "Bash(../fzjjyz.exe encrypt:*)",
       "Bash(../fzjjyz.exe decrypt:*)",
       "Bash(../fzjjyz.exe info:*)",
-      "Bash(../fzjjyz.exe keymanage:*)"
+      "Bash(../fzjjyz.exe keymanage:*)",
+      "Bash(rm:*)",
+      "Bash(/tmp/fzjjyz.exe:*)",
+      "Bash(./fzjjyz_new.exe version:*)",
+      "Bash(./fzjjyz_new.exe keygen:*)",
+      "Bash(./fzjjyz_new.exe encrypt:*)",
+      "Bash(./fzjjyz_new.exe decrypt:*)",
+      "Bash(./fzjjyz_new.exe info:*)",
+      "Bash(./fzjjyz_new.exe keymanage:*)",
+      "Bash(git add:*)"
     ]
   }
 }

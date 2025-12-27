@@ -87,3 +87,15 @@ test_verify/
 PHASE*.md
 PROJECT*.md
 RELEASE*.md
+
+# 测试生成的文件和密钥 #
+######################
+# 测试数据文件
+testdata.txt
+testdata.fzj
+testdata_decrypted.txt
+# 测试密钥（根目录）
+testkey_*.pem
+# 测试目录中的密钥
+**/test_cli/testkey_*.pem
+**/test_cli/import_test/testkey_*.pem

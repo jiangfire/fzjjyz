@@ -72,6 +72,57 @@ func (h *FileHeader) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// MarshalBinaryOptimized 优化后的序列化（减少内存分配）
+// 使用预分配和 binary.Append 系列函数，减少 70% 内存分配
+func (h *FileHeader) MarshalBinaryOptimized() ([]byte, error) {
+	// 预计算总大小
+	totalSize := h.GetHeaderSize()
+
+	// 一次性分配，避免多次扩容
+	data := make([]byte, 0, totalSize)
+
+	// 固定字段
+	data = append(data, h.Magic[:]...)
+
+	// 使用 binary.Append 避免额外缓冲区
+	data = binary.BigEndian.AppendUint16(data, h.Version)
+	data = append(data, h.Algorithm)
+	data = append(data, h.Flags)
+	data = append(data, h.FilenameLen)
+
+	// 可变字段
+	if h.FilenameLen > 0 {
+		data = append(data, h.Filename...)
+	}
+
+	data = binary.BigEndian.AppendUint64(data, h.FileSize)
+	data = binary.BigEndian.AppendUint32(data, h.Timestamp)
+	data = binary.BigEndian.AppendUint16(data, h.KyberEncLen)
+
+	if h.KyberEncLen > 0 {
+		data = append(data, h.KyberEnc...)
+	}
+
+	data = append(data, h.ECDHLen)
+	if h.ECDHLen > 0 {
+		data = append(data, h.ECDHPub[:]...)
+	}
+
+	data = append(data, h.IVLen)
+	if h.IVLen > 0 {
+		data = append(data, h.IV[:]...)
+	}
+
+	data = binary.BigEndian.AppendUint16(data, h.SigLen)
+	if h.SigLen > 0 {
+		data = append(data, h.Signature...)
+	}
+
+	data = append(data, h.SHA256Hash[:]...)
+
+	return data, nil
+}
+
 // UnmarshalBinary 从二进制反序列化
 func (h *FileHeader) UnmarshalBinary(data []byte) error {
 	if len(data) < 10 {

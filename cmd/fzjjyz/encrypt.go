@@ -10,11 +10,13 @@ import (
 )
 
 var (
-	encryptInput     string
-	encryptOutput    string
-	encryptPubKey    string
-	encryptSignKey   string
-	encryptForce     bool
+	encryptInput      string
+	encryptOutput     string
+	encryptPubKey     string
+	encryptSignKey    string
+	encryptForce      bool
+	encryptBufferSize int
+	encryptStreaming  bool
 )
 
 func newEncryptCmd() *cobra.Command {
@@ -48,6 +50,8 @@ func newEncryptCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&encryptPubKey, "public-key", "p", "", "Kyber+ECDH 公钥文件 (必需)")
 	cmd.Flags().StringVarP(&encryptSignKey, "sign-key", "s", "", "Dilithium 私钥文件 (必需)")
 	cmd.Flags().BoolVarP(&encryptForce, "force", "f", false, "覆盖输出文件")
+	cmd.Flags().IntVar(&encryptBufferSize, "buffer-size", 0, "缓冲区大小 (KB)，0=自动选择")
+	cmd.Flags().BoolVar(&encryptStreaming, "streaming", true, "使用流式处理（大文件推荐）")
 
 	cmd.MarkFlagRequired("input")
 	cmd.MarkFlagRequired("public-key")
@@ -81,53 +85,76 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  输出: %s\n", encryptOutput)
 		fmt.Printf("  公钥: %s\n", encryptPubKey)
 		fmt.Printf("  签名密钥: %s\n", encryptSignKey)
+		fmt.Printf("  流式处理: %v\n", encryptStreaming)
 	}
 
-	// 加载密钥
+	// 加载密钥（使用缓存）
 	fmt.Print("\n[1/3] 加载密钥... ")
-
-	// 加载 Kyber+ECDH 公钥
-	hybridPub, err := crypto.LoadPublicKey(encryptPubKey)
+	hybridPub, err := crypto.LoadPublicKeyCached(encryptPubKey)
 	if err != nil {
 		fmt.Println("失败")
-		return fmt.Errorf("加载公钥失败: %v", err)
+		return fmt.Errorf("❌ 加载公钥失败: %v\n\n提示:\n  1. 请检查公钥文件路径是否正确: %s\n  2. 确保公钥文件格式正确（PEM 格式）\n  3. 检查文件权限（需可读）\n  4. 如果是首次使用，请先生成密钥对: fzjjyz keygen", err, encryptPubKey)
 	}
 
-	// 加载 Dilithium 私钥
-	dilithiumPriv, err := crypto.LoadDilithiumPrivateKey(encryptSignKey)
+	dilithiumPriv, err := crypto.LoadDilithiumPrivateKeyCached(encryptSignKey)
 	if err != nil {
 		fmt.Println("失败")
-		return fmt.Errorf("加载签名私钥失败: %v", err)
+		return fmt.Errorf("❌ 加载签名私钥失败: %v\n\n提示:\n  1. 请检查 Dilithium 私钥文件路径是否正确: %s\n  2. 确保私钥文件格式正确（PEM 格式）\n  3. 检查文件权限（建议 0600）\n  4. 私钥文件应仅由所有者读取\n  5. 如果是首次使用，请先生成密钥对: fzjjyz keygen", err, encryptSignKey)
 	}
 	fmt.Println("完成")
 
-	// 加密文件
+	// 确定缓冲区大小
+	var bufSize int
+	if encryptBufferSize > 0 {
+		bufSize = encryptBufferSize * 1024
+	} else {
+		stat, _ := os.Stat(encryptInput)
+		bufSize = crypto.OptimalBufferSize(stat.Size())
+	}
+
+	if verbose {
+		fmt.Printf("  缓冲区大小: %d KB\n", bufSize/1024)
+	}
+
+	// 执行加密
 	fmt.Print("[2/3] 加密文件... ")
-	if err := crypto.EncryptFile(encryptInput, encryptOutput, hybridPub.Kyber, hybridPub.ECDH, dilithiumPriv); err != nil {
+	var encryptFunc func() error
+	if encryptStreaming {
+		encryptFunc = func() error {
+			return crypto.EncryptFileStreaming(
+				encryptInput, encryptOutput,
+				hybridPub.Kyber, hybridPub.ECDH,
+				dilithiumPriv,
+				bufSize,
+			)
+		}
+	} else {
+		encryptFunc = func() error {
+			return crypto.EncryptFile(
+				encryptInput, encryptOutput,
+				hybridPub.Kyber, hybridPub.ECDH,
+				dilithiumPriv,
+			)
+		}
+	}
+
+	if err := encryptFunc(); err != nil {
 		fmt.Println("失败")
-		return fmt.Errorf("加密失败: %v", err)
+		return fmt.Errorf("❌ 加密失败: %v\n\n可能原因:\n  1. 文件权限不足（无法读取输入或写入输出）\n  2. 内存不足（大文件需要更多内存）\n  3. 密钥不匹配\n  4. 输入文件在加密过程中被修改\n\n建议:\n  - 检查磁盘空间和文件权限\n  - 对于超大文件，尝试使用 --buffer-size 调整缓冲区\n  - 确保密钥正确匹配", err)
 	}
 	fmt.Println("完成")
 
 	// 显示结果
 	fmt.Print("[3/3] 验证... ")
+	encryptedInfo, _ := os.Stat(encryptOutput)
+	originalInfo, _ := os.Stat(encryptInput)
+	fmt.Println("完成")
 
-	// 读取加密文件大小
-	encryptedInfo, err := os.Stat(encryptOutput)
-	if err != nil {
-		fmt.Println("警告: 无法获取文件信息")
-	} else {
-		fmt.Println("完成")
-
-		// 获取原始文件大小
-		originalInfo, _ := os.Stat(encryptInput)
-
-		fmt.Printf("\n✅ 加密成功！\n")
-		fmt.Printf("\n文件信息:\n")
-		fmt.Printf("  原始文件: %s (%d bytes)\n", filepath.Base(encryptInput), originalInfo.Size())
-		fmt.Printf("  加密文件: %s (%d bytes)\n", filepath.Base(encryptOutput), encryptedInfo.Size())
-		fmt.Printf("  压缩率: %.1f%%\n", float64(encryptedInfo.Size())/float64(originalInfo.Size())*100)
-	}
+	fmt.Printf("\n✅ 加密成功！\n\n")
+	fmt.Printf("文件信息:\n")
+	fmt.Printf("  原始文件: %s (%d bytes)\n", filepath.Base(encryptInput), originalInfo.Size())
+	fmt.Printf("  加密文件: %s (%d bytes)\n", filepath.Base(encryptOutput), encryptedInfo.Size())
+	fmt.Printf("  压缩率: %.1f%%\n", float64(encryptedInfo.Size())/float64(originalInfo.Size())*100)
 
 	return nil
 }
