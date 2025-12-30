@@ -303,10 +303,10 @@ type HeaderInfo struct {
 	FileSize  uint64
 	Timestamp uint32
 	Algorithm string
-	HasKyber bool
-	HasECDH  bool
-	HasIV    bool
-	HasSig   bool
+	HasKyber  bool
+	HasECDH   bool
+	HasIV     bool
+	HasSig    bool
 }
 
 func GetHeaderInfo(header *FileHeader) *HeaderInfo {

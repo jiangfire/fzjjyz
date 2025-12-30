@@ -1,0 +1,191 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run tests
+        run: go test ./... -cover -v
+
+      - name: Run go fmt check
+        run: go fmt ./...
+
+      - name: Build check
+        run: go build -o /dev/null ./cmd/fzjjyz
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            GOOS: linux
+            GOARCH: amd64
+            artifact_name: fzjjyz_linux_amd64
+          - os: windows-latest
+            GOOS: windows
+            GOARCH: amd64
+            artifact_name: fzjjyz_windows_amd64.exe
+          - os: macos-latest
+            GOOS: darwin
+            GOARCH: amd64
+            artifact_name: fzjjyz_darwin_amd64
+          - os: macos-latest
+            GOOS: darwin
+            GOARCH: arm64
+            artifact_name: fzjjyz_darwin_arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build binary
+        run: |
+          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o ${{ matrix.artifact_name }} ./cmd/fzjjyz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 1
+
+  checksums:
+    name: Generate Checksums
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate checksums
+        run: |
+          cd fzjjyz_linux_amd64
+          ls -la
+          cd ..
+          for file in fzjjyz_*; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" >> checksums.txt
+            fi
+          done
+          cat checksums.txt
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: checksums.txt
+          retention-days: 1
+
+  release:
+    name: Create Release
+    needs: [build, checksums]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Move artifacts to release directory
+        run: |
+          mkdir -p release
+          mv fzjjyz_linux_amd64/fzjjyz_linux_amd64 release/ 2>/dev/null || true
+          mv fzjjyz_windows_amd64.exe/fzjjyz_windows_amd64.exe release/ 2>/dev/null || true
+          mv fzjjyz_darwin_amd64/fzjjyz_darwin_amd64 release/ 2>/dev/null || true
+          mv fzjjyz_darwin_arm64/fzjjyz_darwin_arm64 release/ 2>/dev/null || true
+          mv checksums/checksums.txt release/ 2>/dev/null || true
+          cd release && ls -la
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Try to use RELEASE_NOTES.md if exists, otherwise generate from git
+          if [ -f "RELEASE_NOTES.md" ]; then
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            # Generate from git tags
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            echo "## 🎉 Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 📦 Assets" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_linux_amd64\` - Linux 64-bit" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_windows_amd64.exe\` - Windows 64-bit" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_darwin_amd64\` - macOS Intel" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_darwin_arm64\` - macOS Apple Silicon" >> $GITHUB_OUTPUT
+            echo "- \`checksums.txt\` - SHA256 校验和" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 🔍 验证" >> $GITHUB_OUTPUT
+            echo "\`\`\`bash" >> $GITHUB_OUTPUT
+            echo "# 验证校验和" >> $GITHUB_OUTPUT
+            echo "sha256sum -c checksums.txt" >> $GITHUB_OUTPUT
+            echo "\`\`\`" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.release_notes.outputs.body }}
+          draft: false
+          prerelease: false
+          files: |
+            release/fzjjyz_linux_amd64
+            release/fzjjyz_windows_amd64.exe
+            release/fzjjyz_darwin_amd64
+            release/fzjjyz_darwin_arm64
+            release/checksums.txt
+
+  cleanup:
+    name: Cleanup Artifacts
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v4
+        with:
+          name: |
+            fzjjyz_linux_amd64
+            fzjjyz_windows_amd64.exe
+            fzjjyz_darwin_amd64
+            fzjjyz_darwin_arm64
+            checksums

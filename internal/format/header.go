@@ -35,15 +35,15 @@ func (h *FileHeader) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// 固定字段 (10字节)
-	buf.Write(h.Magic[:])                     // 4字节
-	binary.Write(buf, binary.BigEndian, h.Version)   // 2字节
-	buf.WriteByte(h.Algorithm)                // 1字节
-	buf.WriteByte(h.Flags)                    // 1字节
-	buf.WriteByte(h.FilenameLen)              // 1字节
+	buf.Write(h.Magic[:])                          // 4字节
+	binary.Write(buf, binary.BigEndian, h.Version) // 2字节
+	buf.WriteByte(h.Algorithm)                     // 1字节
+	buf.WriteByte(h.Flags)                         // 1字节
+	buf.WriteByte(h.FilenameLen)                   // 1字节
 
 	// 可变长度字段
 	if h.FilenameLen > 0 {
-		buf.WriteString(h.Filename)            // N字节
+		buf.WriteString(h.Filename) // N字节
 	}
 	binary.Write(buf, binary.BigEndian, h.FileSize)  // 8字节
 	binary.Write(buf, binary.BigEndian, h.Timestamp) // 4字节
@@ -51,23 +51,23 @@ func (h *FileHeader) MarshalBinary() ([]byte, error) {
 	// 密钥相关
 	binary.Write(buf, binary.BigEndian, h.KyberEncLen) // 2字节
 	if h.KyberEncLen > 0 {
-		buf.Write(h.KyberEnc)                   // M字节
+		buf.Write(h.KyberEnc) // M字节
 	}
-	buf.WriteByte(h.ECDHLen)                    // 1字节
+	buf.WriteByte(h.ECDHLen) // 1字节
 	if h.ECDHLen > 0 {
-		buf.Write(h.ECDHPub[:])                 // 32字节
+		buf.Write(h.ECDHPub[:]) // 32字节
 	}
-	buf.WriteByte(h.IVLen)                      // 1字节
+	buf.WriteByte(h.IVLen) // 1字节
 	if h.IVLen > 0 {
-		buf.Write(h.IV[:])                      // 12字节
+		buf.Write(h.IV[:]) // 12字节
 	}
 
 	// 签名和校验
 	binary.Write(buf, binary.BigEndian, h.SigLen) // 2字节
 	if h.SigLen > 0 {
-		buf.Write(h.Signature)                  // S字节
+		buf.Write(h.Signature) // S字节
 	}
-	buf.Write(h.SHA256Hash[:])                  // 32字节
+	buf.Write(h.SHA256Hash[:]) // 32字节
 
 	return buf.Bytes(), nil
 }
@@ -256,15 +256,15 @@ func NewFileHeader(filename string, fileSize uint64, kyberEnc []byte, ecdhPub [3
 func (h *FileHeader) GetHeaderSize() int {
 	size := 9 // 固定字段: Magic(4) + Version(2) + Algorithm(1) + Flags(1) + FilenameLen(1)
 	size += int(h.FilenameLen)
-	size += 8  // FileSize
-	size += 4  // Timestamp
-	size += 2  // KyberEncLen
+	size += 8 // FileSize
+	size += 4 // Timestamp
+	size += 2 // KyberEncLen
 	size += int(h.KyberEncLen)
-	size += 1  // ECDHLen
+	size += 1 // ECDHLen
 	size += int(h.ECDHLen)
-	size += 1  // IVLen
+	size += 1 // IVLen
 	size += int(h.IVLen)
-	size += 2  // SigLen
+	size += 2 // SigLen
 	size += int(h.SigLen)
 	size += 32 // SHA256Hash
 	return size

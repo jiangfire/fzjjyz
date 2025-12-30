@@ -15,15 +15,17 @@ import (
 // 但提供了缓冲区池优化和统一的接口设计，便于未来扩展真正的流式处理。
 //
 // 参数：
-//   inputPath: 输入文件路径
-//   outputPath: 输出文件路径
-//   kyberPub: Kyber 公钥
-//   ecdhPub: ECDH 公钥
-//   dilithiumPriv: Dilithium 私钥（可选，传 nil 跳过签名）
-//   bufferSize: 缓冲区大小（建议使用 OptimalBufferSize 自动选择）
+//
+//	inputPath: 输入文件路径
+//	outputPath: 输出文件路径
+//	kyberPub: Kyber 公钥
+//	ecdhPub: ECDH 公钥
+//	dilithiumPriv: Dilithium 私钥（可选，传 nil 跳过签名）
+//	bufferSize: 缓冲区大小（建议使用 OptimalBufferSize 自动选择）
 //
 // 返回：
-//   error: 错误信息
+//
+//	error: 错误信息
 func EncryptFileStreaming(
 	inputPath, outputPath string,
 	kyberPub kem.PublicKey,
@@ -45,15 +47,17 @@ func EncryptFileStreaming(
 // 但提供了缓冲区池优化和统一的接口设计，便于未来扩展真正的流式处理。
 //
 // 参数：
-//   inputPath: 加密文件路径
-//   outputPath: 输出文件路径
-//   kyberPriv: Kyber 私钥
-//   ecdhPriv: ECDH 私钥
-//   dilithiumPub: Dilithium 公钥（可选，传 nil 跳过签名验证）
-//   bufferSize: 缓冲区大小（建议使用 OptimalBufferSize 自动选择）
+//
+//	inputPath: 加密文件路径
+//	outputPath: 输出文件路径
+//	kyberPriv: Kyber 私钥
+//	ecdhPriv: ECDH 私钥
+//	dilithiumPub: Dilithium 公钥（可选，传 nil 跳过签名验证）
+//	bufferSize: 缓冲区大小（建议使用 OptimalBufferSize 自动选择）
 //
 // 返回：
-//   error: 错误信息
+//
+//	error: 错误信息
 func DecryptFileStreaming(
 	inputPath, outputPath string,
 	kyberPriv kem.PrivateKey,

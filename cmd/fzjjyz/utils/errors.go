@@ -9,17 +9,17 @@ import (
 type ErrorType string
 
 const (
-	ErrorInvalidInput    ErrorType = "输入错误"
-	ErrorKeyNotFound     ErrorType = "密钥文件不存在"
-	ErrorKeyInvalid      ErrorType = "密钥格式无效"
-	ErrorFileNotFound    ErrorType = "文件不存在"
-	ErrorFileExists      ErrorType = "文件已存在"
-	ErrorPermission      ErrorType = "权限不足"
-	ErrorEncryption      ErrorType = "加密失败"
-	ErrorDecryption      ErrorType = "解密失败"
-	ErrorSignature       ErrorType = "签名验证失败"
-	ErrorIO              ErrorType = "读写错误"
-	ErrorUnknown         ErrorType = "未知错误"
+	ErrorInvalidInput ErrorType = "输入错误"
+	ErrorKeyNotFound  ErrorType = "密钥文件不存在"
+	ErrorKeyInvalid   ErrorType = "密钥格式无效"
+	ErrorFileNotFound ErrorType = "文件不存在"
+	ErrorFileExists   ErrorType = "文件已存在"
+	ErrorPermission   ErrorType = "权限不足"
+	ErrorEncryption   ErrorType = "加密失败"
+	ErrorDecryption   ErrorType = "解密失败"
+	ErrorSignature    ErrorType = "签名验证失败"
+	ErrorIO           ErrorType = "读写错误"
+	ErrorUnknown      ErrorType = "未知错误"
 )
 
 // UserError 用户友好的错误包装

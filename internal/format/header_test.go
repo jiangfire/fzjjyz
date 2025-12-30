@@ -12,7 +12,7 @@ func TestFileHeaderSerialization(t *testing.T) {
 		Version:     0x0100,
 		Algorithm:   0x02,
 		Flags:       0x01,
-		FilenameLen: 8,  // 修正：test.txt 是 8 字节
+		FilenameLen: 8, // 修正：test.txt 是 8 字节
 		Filename:    "test.txt",
 		FileSize:    1024,
 		Timestamp:   1734672000,
@@ -215,7 +215,7 @@ func TestHeaderSizeEstimation(t *testing.T) {
 		Version:     0x0100,
 		Algorithm:   0x02,
 		Flags:       0x01,
-		FilenameLen: 12,  // document.pdf = 12 bytes
+		FilenameLen: 12, // document.pdf = 12 bytes
 		Filename:    "document.pdf",
 		FileSize:    1024 * 1024, // 1MB
 		Timestamp:   1734672000,

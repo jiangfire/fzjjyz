@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sync"
 
+	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 	"github.com/cloudflare/circl/kem"
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
-	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 )
 
 // 密钥对结构（表达原则：数据结构优先）

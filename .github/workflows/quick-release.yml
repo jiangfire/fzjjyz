@@ -1,0 +1,118 @@
+name: Quick Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.1)'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  quick-release:
+    name: Quick Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run tests
+        run: go test ./... -cover
+
+      - name: Build binaries
+        run: |
+          # Linux
+          GOOS=linux GOARCH=amd64 go build -o fzjjyz_linux_amd64 ./cmd/fzjjyz
+          # Windows
+          GOOS=windows GOARCH=amd64 go build -o fzjjyz_windows_amd64.exe ./cmd/fzjjyz
+          # macOS Intel
+          GOOS=darwin GOARCH=amd64 go build -o fzjjyz_darwin_amd64 ./cmd/fzjjyz
+          # macOS Apple Silicon
+          GOOS=darwin GOARCH=arm64 go build -o fzjjyz_darwin_arm64 ./cmd/fzjjyz
+
+      - name: Generate checksums
+        run: |
+          sha256sum fzjjyz_* > checksums.txt
+          cat checksums.txt
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}" || true
+          git push origin ${{ github.event.inputs.version }} || true
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Check if RELEASE_NOTES.md exists and contains version
+          if [ -f "RELEASE_NOTES.md" ]; then
+            # Extract section for this version if possible
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            echo "## 🎉 Release ${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 📦 下载" >> $GITHUB_OUTPUT
+            echo "请从附件下载对应平台的二进制文件。" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 🔍 验证完整性" >> $GITHUB_OUTPUT
+            echo "\`\`\`bash" >> $GITHUB_OUTPUT
+            echo "# 下载后验证校验和" >> $GITHUB_OUTPUT
+            echo "sha256sum -c checksums.txt" >> $GITHUB_OUTPUT
+            echo "\`\`\`" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 🚀 快速开始" >> $GITHUB_OUTPUT
+            echo "\`\`\`bash" >> $GITHUB_OUTPUT
+            echo "# 1. 解压/下载对应平台的二进制" >> $GITHUB_OUTPUT
+            echo "# 2. 生成密钥" >> $GITHUB_OUTPUT
+            echo "./fzjjyz keygen -d ./keys -n mykey" >> $GITHUB_OUTPUT
+            echo "# 3. 加密文件" >> $GITHUB_OUTPUT
+            echo "./fzjjyz encrypt -i secret.txt -o secret.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem" >> $GITHUB_OUTPUT
+            echo "# 4. 解密文件" >> $GITHUB_OUTPUT
+            echo "./fzjjyz decrypt -i secret.fzj -o recovered.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem" >> $GITHUB_OUTPUT
+            echo "\`\`\`" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            echo "## 🎉 Release ${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 📦 Assets" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_linux_amd64\` - Linux 64-bit" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_windows_amd64.exe\` - Windows 64-bit" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_darwin_amd64\` - macOS Intel" >> $GITHUB_OUTPUT
+            echo "- \`fzjjyz_darwin_arm64\` - macOS Apple Silicon" >> $GITHUB_OUTPUT
+            echo "- \`checksums.txt\` - SHA256 校验和" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 🔍 验证" >> $GITHUB_OUTPUT
+            echo "\`\`\`bash" >> $GITHUB_OUTPUT
+            echo "sha256sum -c checksums.txt" >> $GITHUB_OUTPUT
+            echo "\`\`\`" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          body: ${{ steps.release_notes.outputs.body }}
+          draft: false
+          prerelease: false
+          files: |
+            fzjjyz_linux_amd64
+            fzjjyz_windows_amd64.exe
+            fzjjyz_darwin_amd64
+            fzjjyz_darwin_arm64
+            checksums.txt

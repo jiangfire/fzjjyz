@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
+	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"github.com/spf13/cobra"
 )
 
@@ -21,31 +22,16 @@ var (
 func newKeymanageCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keymanage",
-		Short: "密钥管理工具",
-		Long: `管理加密密钥，支持导出、导入和验证操作。
-
-可用操作:
-  export    从私钥文件中提取并导出公钥
-  import    导入密钥文件到指定目录
-  verify    验证密钥对是否匹配
-
-示例:
-  # 导出公钥
-  fzjjyz keymanage export --private-key private.pem --output public_extracted.pem
-
-  # 验证密钥对
-  fzjjyz keymanage verify --public-key public.pem --private-key private.pem
-
-  # 导入密钥
-  fzjjyz keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
-		RunE: runKeymanage,
+		Short: i18n.T("keymanage.short"),
+		Long:  i18n.T("keymanage.long"),
+		RunE:  runKeymanage,
 	}
 
-	cmd.Flags().StringVarP(&keymanageAction, "action", "a", "", "操作类型: export/import/verify (必需)")
-	cmd.Flags().StringVarP(&keymanagePubKey, "public-key", "p", "", "公钥文件路径")
-	cmd.Flags().StringVarP(&keymanagePrivKey, "private-key", "s", "", "私钥文件路径")
-	cmd.Flags().StringVarP(&keymanageOutput, "output", "o", "", "输出文件路径 (用于export)")
-	cmd.Flags().StringVarP(&keymanageOutputDir, "output-dir", "d", ".", "输出目录 (用于import)")
+	cmd.Flags().StringVarP(&keymanageAction, "action", "a", "", i18n.T("keymanage.flags.action"))
+	cmd.Flags().StringVarP(&keymanagePubKey, "public-key", "p", "", i18n.T("keymanage.flags.public-key"))
+	cmd.Flags().StringVarP(&keymanagePrivKey, "private-key", "s", "", i18n.T("keymanage.flags.private-key"))
+	cmd.Flags().StringVarP(&keymanageOutput, "output", "o", "", i18n.T("keymanage.flags.output"))
+	cmd.Flags().StringVarP(&keymanageOutputDir, "output-dir", "d", ".", i18n.T("keymanage.flags.output-dir"))
 
 	cmd.MarkFlagRequired("action")
 
@@ -61,25 +47,25 @@ func runKeymanage(cmd *cobra.Command, args []string) error {
 	case "verify":
 		return runVerify()
 	default:
-		return fmt.Errorf("未知操作: %s (支持: export, import, verify)", keymanageAction)
+		return fmt.Errorf(i18n.T("error.unknown_action"), keymanageAction)
 	}
 }
 
 // export: 从私钥文件中提取并导出公钥
 func runExport() error {
 	if keymanagePrivKey == "" {
-		return fmt.Errorf("必须提供 --private-key")
+		return fmt.Errorf(i18n.T("error.missing_required_flags"), "--private-key")
 	}
 	if keymanageOutput == "" {
-		return fmt.Errorf("必须提供 --output")
+		return fmt.Errorf(i18n.T("error.missing_required_flags"), "--output")
 	}
 
-	fmt.Println("导出公钥...")
+	fmt.Println(i18n.T("status.public_key") + "...")
 
 	// 加载私钥文件
 	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
-		return fmt.Errorf("加载私钥失败: %v", err)
+		return i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey)
 	}
 
 	// 从私钥中提取公钥
@@ -89,44 +75,44 @@ func runExport() error {
 	// 导出公钥到 PEM
 	pubPEM, err := crypto.ExportPublicKey(kyberPub, ecdhPub)
 	if err != nil {
-		return fmt.Errorf("导出公钥失败: %v", err)
+		return i18n.TranslateError("error.export_key_failed", err)
 	}
 
 	// 保存公钥文件
 	if err := os.WriteFile(keymanageOutput, pubPEM, 0644); err != nil {
-		return fmt.Errorf("保存公钥文件失败: %v", err)
+		return i18n.TranslateError("error.save_export_failed", err)
 	}
 
-	fmt.Printf("✅ 公钥已导出到: %s\n", keymanageOutput)
+	fmt.Printf(i18n.T("status.success_export")+"\n", keymanageOutput)
 	return nil
 }
 
 // import: 导入密钥到指定目录
 func runImport() error {
 	if keymanagePubKey == "" || keymanagePrivKey == "" {
-		return fmt.Errorf("必须提供 --public-key 和 --private-key")
+		return fmt.Errorf("%s", i18n.T("error.missing_both_keys"))
 	}
 
 	if keymanageOutputDir == "" {
 		keymanageOutputDir = "."
 	}
 
-	fmt.Println("导入密钥...")
+	fmt.Println(i18n.T("status.success_import") + "...")
 
 	// 创建输出目录
 	if err := os.MkdirAll(keymanageOutputDir, 0755); err != nil {
-		return fmt.Errorf("无法创建目录: %v", err)
+		return fmt.Errorf(i18n.T("error.cannot_create_dir"), keymanageOutputDir, err)
 	}
 
 	// 加载密钥
 	hybridPub, err := crypto.LoadPublicKey(keymanagePubKey)
 	if err != nil {
-		return fmt.Errorf("加载公钥失败: %v", err)
+		return i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey)
 	}
 
 	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
-		return fmt.Errorf("加载私钥失败: %v", err)
+		return i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey)
 	}
 
 	// 生成新路径
@@ -137,12 +123,12 @@ func runImport() error {
 
 	// 保存到新位置
 	if err := crypto.SaveKeyFiles(hybridPub.Kyber, hybridPub.ECDH, hybridPriv.Kyber, hybridPriv.ECDH, newPubPath, newPrivPath); err != nil {
-		return fmt.Errorf("保存密钥失败: %v", err)
+		return i18n.TranslateError("error.save_keys_failed", err)
 	}
 
-	fmt.Printf("✅ 密钥已导入到: %s\n", keymanageOutputDir)
-	fmt.Printf("  公钥: %s\n", basePub)
-	fmt.Printf("  私钥: %s\n", basePriv)
+	fmt.Printf(i18n.T("status.success_import")+"\n", keymanageOutputDir)
+	fmt.Printf("  %s: %s\n", i18n.T("status.public_key"), basePub)
+	fmt.Printf("  %s: %s\n", i18n.T("status.private_key"), basePriv)
 
 	return nil
 }
@@ -150,23 +136,23 @@ func runImport() error {
 // verify: 验证密钥对是否匹配
 func runVerify() error {
 	if keymanagePubKey == "" || keymanagePrivKey == "" {
-		return fmt.Errorf("必须提供 --public-key 和 --private-key")
+		return fmt.Errorf("%s", i18n.T("error.missing_both_keys"))
 	}
 
-	fmt.Println("验证密钥对...")
+	fmt.Println(i18n.T("status.success_verify") + "...")
 
 	// 加载公钥
 	hybridPub, err := crypto.LoadPublicKey(keymanagePubKey)
 	if err != nil {
-		fmt.Println("❌ 公钥加载失败")
-		return fmt.Errorf("加载公钥失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey)
 	}
 
 	// 加载私钥
 	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
-		fmt.Println("❌ 私钥加载失败")
-		return fmt.Errorf("加载私钥失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey)
 	}
 
 	// 验证密钥对是否匹配
@@ -181,20 +167,19 @@ func runVerify() error {
 	ecdhMatch := bytes.Equal(ecdhPubBytes, ecdhPrivPubBytes)
 
 	if kyberMatch && ecdhMatch {
-		fmt.Println("✅ 密钥对验证通过")
-		fmt.Println("  Kyber:  ✅ 匹配")
-		fmt.Println("  ECDH:   ✅ 匹配")
+		fmt.Println(i18n.T("status.success_verify"))
+		fmt.Printf(i18n.T("keymanage_verify.kyber")+"\n", "✅")
+		fmt.Printf(i18n.T("keymanage_verify.ecdh")+"\n", "✅")
 	} else {
-		fmt.Println("❌ 密钥对不匹配")
+		fmt.Println(i18n.T("status.failed_verify"))
 		if !kyberMatch {
-			fmt.Println("  Kyber:  ❌ 不匹配")
+			fmt.Printf(i18n.T("keymanage_verify.kyber")+"\n", "❌")
 		}
 		if !ecdhMatch {
-			fmt.Println("  ECDH:   ❌ 不匹配")
+			fmt.Printf(i18n.T("keymanage_verify.ecdh")+"\n", "❌")
 		}
-		return fmt.Errorf("密钥对不匹配")
+		return i18n.TranslateError("error.verify_keys_failed")
 	}
 
 	return nil
 }
-

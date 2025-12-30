@@ -116,8 +116,8 @@ func TestHybridWithDifferentData(t *testing.T) {
 	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	testCases := []struct {
-		name  string
-		data  []byte
+		name string
+		data []byte
 	}{
 		{"空数据", []byte{}},
 		{"单字节", []byte{0x00}},
@@ -278,10 +278,10 @@ func TestAESGCMEmptyData(t *testing.T) {
 func TestAESGCMInvalidKey(t *testing.T) {
 	// 密钥长度错误
 	invalidKeys := [][]byte{
-		make([]byte, 16),  // AES-128 (不支持)
-		make([]byte, 24),  // AES-192 (不支持)
-		make([]byte, 0),   // 空密钥
-		make([]byte, 64),  // 过长
+		make([]byte, 16), // AES-128 (不支持)
+		make([]byte, 24), // AES-192 (不支持)
+		make([]byte, 0),  // 空密钥
+		make([]byte, 64), // 过长
 	}
 
 	data := []byte("test")

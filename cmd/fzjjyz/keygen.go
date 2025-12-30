@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
+	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"github.com/spf13/cobra"
 )
 
@@ -19,26 +20,14 @@ var (
 func newKeygenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keygen",
-		Short: "生成后量子密钥对",
-		Long: `生成完整的密钥对组合，包括：
-  • Kyber768 + ECDH 密钥对 (用于加密/解密)
-  • Dilithium3 密钥对 (用于签名/验证)
-
-生成的文件：
-  {name}_public.pem          - Kyber+ECDH 公钥
-  {name}_private.pem         - Kyber+ECDH 私钥 (0600权限)
-  {name}_dilithium_public.pem  - Dilithium 公钥
-  {name}_dilithium_private.pem - Dilithium 私钥 (0600权限)
-
-示例：
-  fzjjyz keygen -d ./keys -n mykey
-  fzjjyz keygen --output-dir ./keys --name mykey --force`,
-		RunE: runKeygen,
+		Short: i18n.T("keygen.short"),
+		Long:  i18n.T("keygen.long"),
+		RunE:  runKeygen,
 	}
 
-	cmd.Flags().StringVarP(&keygenOutputDir, "output-dir", "d", ".", "输出目录")
-	cmd.Flags().StringVarP(&keygenName, "name", "n", "", "密钥名称前缀 (默认: 时间戳)")
-	cmd.Flags().BoolVarP(&keygenForce, "force", "f", false, "覆盖现有文件")
+	cmd.Flags().StringVarP(&keygenOutputDir, "output-dir", "d", ".", i18n.T("keygen.flags.output-dir"))
+	cmd.Flags().StringVarP(&keygenName, "name", "n", "", i18n.T("keygen.flags.name"))
+	cmd.Flags().BoolVarP(&keygenForce, "force", "f", false, i18n.T("keygen.flags.force"))
 
 	return cmd
 }
@@ -51,7 +40,7 @@ func runKeygen(cmd *cobra.Command, args []string) error {
 
 	// 创建输出目录
 	if err := os.MkdirAll(keygenOutputDir, 0755); err != nil {
-		return fmt.Errorf("无法创建目录 %s: %v", keygenOutputDir, err)
+		return fmt.Errorf(i18n.T("error.cannot_create_dir"), keygenOutputDir, err)
 	}
 
 	// 构建文件路径
@@ -65,74 +54,74 @@ func runKeygen(cmd *cobra.Command, args []string) error {
 	if !keygenForce {
 		for _, p := range paths {
 			if _, err := os.Stat(p); err == nil {
-				return fmt.Errorf("文件已存在: %s (使用 --force 覆盖)", p)
+				return fmt.Errorf(i18n.T("error.output_file_exists"), p)
 			}
 		}
 	}
 
 	// 显示生成信息
 	if verbose {
-		fmt.Printf("生成密钥对...\n")
-		fmt.Printf("  输出目录: %s\n", keygenOutputDir)
-		fmt.Printf("  密钥名称: %s\n", keygenName)
+		fmt.Printf("%s\n", i18n.T("status.generating_keys"))
+		fmt.Printf("  %s: %s\n", i18n.T("keygen.flags.output-dir"), keygenOutputDir)
+		fmt.Printf("  %s: %s\n", i18n.T("keygen.flags.name"), keygenName)
 	}
 
 	// 1. 生成 Kyber 密钥对
-	fmt.Print("  [1/4] 生成 Kyber768 密钥... ")
+	fmt.Printf("  [1/4] %s ", i18n.T("progress.generating_kyber"))
 	kyberPub, kyberPriv, err := crypto.GenerateKyberKeys()
 	if err != nil {
-		fmt.Println("失败")
-		return fmt.Errorf("Kyber密钥生成失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.keygen_kyber_failed", err)
 	}
-	fmt.Println("完成")
+	fmt.Println(i18n.T("status.done"))
 
 	// 2. 生成 ECDH 密钥对
-	fmt.Print("  [2/4] 生成 ECDH X25519 密钥... ")
+	fmt.Printf("  [2/4] %s ", i18n.T("progress.generating_ecdh"))
 	ecdhPub, ecdhPriv, err := crypto.GenerateECDHKeys()
 	if err != nil {
-		fmt.Println("失败")
-		return fmt.Errorf("ECDH密钥生成失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.keygen_ecdh_failed", err)
 	}
-	fmt.Println("完成")
+	fmt.Println(i18n.T("status.done"))
 
 	// 3. 生成 Dilithium 密钥对
-	fmt.Print("  [3/4] 生成 Dilithium3 签名密钥... ")
+	fmt.Printf("  [3/4] %s ", i18n.T("progress.generating_dilithium"))
 	dilithiumPub, dilithiumPriv, err := crypto.GenerateDilithiumKeys()
 	if err != nil {
-		fmt.Println("失败")
-		return fmt.Errorf("Dilithium密钥生成失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.keygen_dilithium_failed", err)
 	}
-	fmt.Println("完成")
+	fmt.Println(i18n.T("status.done"))
 
 	// 4. 保存密钥文件
-	fmt.Print("  [4/4] 保存密钥文件... ")
+	fmt.Printf("  [4/4] %s ", i18n.T("progress.saving_keys"))
 
 	// 保存 Kyber+ECDH 密钥对
 	if err := crypto.SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
-		fmt.Println("失败")
-		return fmt.Errorf("保存密钥文件失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.save_keys_failed", err)
 	}
 
 	// 保存 Dilithium 密钥对
 	if err := crypto.SaveDilithiumKeys(dilithiumPub, dilithiumPriv, dilithiumPubPath, dilithiumPrivPath); err != nil {
-		fmt.Println("失败")
-		return fmt.Errorf("保存Dilithium密钥失败: %v", err)
+		fmt.Println(i18n.T("status.failed"))
+		return i18n.TranslateError("error.save_dilithium_failed", err)
 	}
 
-	fmt.Println("完成")
+	fmt.Println(i18n.T("status.done"))
 
 	// 显示摘要
-	fmt.Println("\n✅ 密钥对生成成功！")
-	fmt.Println("\n生成的文件:")
-	fmt.Printf("  • %s (公钥)\n", filepath.Base(pubPath))
-	fmt.Printf("  • %s (私钥 - 0600权限)\n", filepath.Base(privPath))
-	fmt.Printf("  • %s (签名公钥)\n", filepath.Base(dilithiumPubPath))
-	fmt.Printf("  • %s (签名私钥 - 0600权限)\n", filepath.Base(dilithiumPrivPath))
+	fmt.Println("\n" + i18n.T("status.success_keygen"))
+	fmt.Printf("\n"+i18n.T("keygen_info.files")+"\n",
+		filepath.Base(pubPath),
+		filepath.Base(privPath),
+		filepath.Base(dilithiumPubPath),
+		filepath.Base(dilithiumPrivPath))
 
-	fmt.Println("\n⚠️  安全提示:")
-	fmt.Println("  • 请妥善保管私钥文件")
-	fmt.Println("  • 不要将私钥分享给他人")
-	fmt.Println("  • 建议使用安全的存储介质")
+	fmt.Println("\n" + i18n.T("security.warning"))
+	fmt.Println(i18n.T("security.protect_keys"))
+	fmt.Println(i18n.T("security.no_sharing"))
+	fmt.Println(i18n.T("security.secure_storage"))
 
 	return nil
 }

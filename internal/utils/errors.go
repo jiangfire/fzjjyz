@@ -57,7 +57,7 @@ type ErrorContext struct {
 
 func (ctx *ErrorContext) Wrap(code ErrorCode, msg string) error {
 	return &CryptoError{
-		Code:    code,
+		Code: code,
 		Message: fmt.Sprintf("%s at position %d in %s: %s",
 			ctx.Operation, ctx.Position, ctx.File, msg),
 	}

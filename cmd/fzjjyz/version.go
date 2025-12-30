@@ -3,19 +3,20 @@ package main
 import (
 	"fmt"
 
+	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"github.com/spf13/cobra"
 )
 
 func newVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "显示版本信息",
-		Long:  `显示 fzjjyz 的版本信息和构建详情`,
+		Short: i18n.T("version.short"),
+		Long:  i18n.T("version.long"),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("fzjjyz - 后量子文件加密工具\n")
-			fmt.Printf("版本: %s\n", Version)
-			fmt.Printf("应用名称: %s\n", AppName)
-			fmt.Printf("描述: %s\n", Description)
+			fmt.Printf("%s - %s\n", i18n.T("app.name"), i18n.T("app.description"))
+			fmt.Printf("%s %s\n", i18n.T("version.label"), Version)
+			fmt.Printf("%s %s\n", i18n.T("version.app_name"), AppName)
+			fmt.Printf("%s %s\n", i18n.T("version.description"), Description)
 		},
 	}
 

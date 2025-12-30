@@ -112,7 +112,7 @@ func TestParseFileHeaderValidation(t *testing.T) {
 		Version:     0x0100,
 		Algorithm:   0x02,
 		Flags:       0x00,
-		FilenameLen: 12,  // document.pdf = 12 bytes
+		FilenameLen: 12, // document.pdf = 12 bytes
 		Filename:    "document.pdf",
 		FileSize:    2048,
 		Timestamp:   uint32(1734672000),
@@ -221,7 +221,7 @@ func TestParseFileWithFile(t *testing.T) {
 		Version:     0x0100,
 		Algorithm:   0x02,
 		Flags:       0x01,
-		FilenameLen: 13,  // encrypted.bin = 13 bytes
+		FilenameLen: 13, // encrypted.bin = 13 bytes
 		Filename:    "encrypted.bin",
 		FileSize:    1024 * 1024,
 		Timestamp:   uint32(1734672000),

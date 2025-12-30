@@ -86,7 +86,15 @@ test_cli/
 test_verify/
 PHASE*.md
 PROJECT*.md
-RELEASE*.md
+
+# 发布相关
+######################
+# 发布构建目录
+release/
+# 本地构建的二进制文件
+fzjjyz_*
+# checksums 文件（本地生成）
+checksums.txt
 
 # 测试生成的文件和密钥 #
 ######################

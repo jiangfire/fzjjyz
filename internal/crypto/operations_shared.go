@@ -13,15 +13,15 @@ import (
 
 // EncryptionData 包含加密所需的所有数据
 type EncryptionData struct {
-	Plaintext     []byte
-	Filename      string
-	FileSize      uint64
-	Encapsulated  []byte
-	ECDHTempPub   []byte
-	SharedSecret  []byte
-	IV            []byte
-	Hash          [32]byte
-	Signature     []byte
+	Plaintext    []byte
+	Filename     string
+	FileSize     uint64
+	Encapsulated []byte
+	ECDHTempPub  []byte
+	SharedSecret []byte
+	IV           []byte
+	Hash         [32]byte
+	Signature    []byte
 }
 
 // DecryptionData 包含解密所需的所有数据

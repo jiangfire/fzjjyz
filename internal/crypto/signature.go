@@ -149,4 +149,3 @@ func DilithiumGetPublicKey(privKey interface{}) interface{} {
 	}
 	return priv.Public()
 }
-
