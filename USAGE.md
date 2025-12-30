@@ -1184,7 +1184,7 @@ fzjjyz decrypt -i file.fzj -p key.pem --verbose 2>&1 | tee error.log
 
 ---
 
-**版本**: v0.1.0
+**版本**: v0.2.0
 **最后更新**: 2025-12-30
 **维护者**: fzjjyz 开发团队
 
