@@ -102,8 +102,13 @@ checksums.txt
 testdata.txt
 testdata.fzj
 testdata_decrypted.txt
+testfile.txt
 # 测试密钥（根目录）
 testkey_*.pem
+# 测试目录
+testdir/
+# 测试文件（根目录临时测试）
+test_*.go
 # 测试目录中的密钥
 **/test_cli/testkey_*.pem
 **/test_cli/import_test/testkey_*.pem
