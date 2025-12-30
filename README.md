@@ -9,7 +9,7 @@
 
 **fzjjyz** 是一个基于后量子密码学的文件加密工具，提供面向未来的安全保护。
 
-> 🔔 **2025-12-26 更新**: 增强密钥缓存安全（TTL + 大小限制）、优化错误提示、新增性能基准测试
+> 🔔 **2025-12-30 更新**: v0.2.0 - 目录加密/解密、国际化支持（中英文）、路径遍历防护
 
 ## ✨ 核心特性
 
@@ -21,8 +21,10 @@
 - 🧰 **智能缓存**: 带 TTL 和大小限制的密钥缓存，防止内存泄漏
 - 📊 **性能监控**: 内置基准测试，支持性能分析
 - 🌍 **跨平台**: Windows/Linux/macOS 全支持
-- 📦 **开箱即用**: 完整的 CLI 工具，6个核心命令
+- 📦 **开箱即用**: 完整的 CLI 工具，8个核心命令（含目录加密）
 - 💡 **友好提示**: 详细的错误信息和解决方案建议
+- 🌍 **国际化**: 自动检测 LANG 环境变量，支持中英文
+- 🛡️ **路径防护**: 自动检测并阻止 ZIP 路径遍历攻击
 
 ## 🚀 快速开始
 
@@ -212,18 +214,25 @@ fzjjyz keygen -d ./keys -n mykey
 fzjjyz encrypt -i input.txt -o output.fzj -p keys/public.pem -s keys/dilithium_priv.pem
 fzjjyz decrypt -i output.fzj -o recovered.txt -p keys/private.pem -s keys/dilithium_pub.pem
 
-# 3. 信息查看
+# 3. 目录加密/解密 (v0.2.0 新增)
+fzjjyz encrypt-dir -i ./myproject -o project.fzj -p keys/public.pem -s keys/dilithium_priv.pem
+fzjjyz decrypt-dir -i project.fzj -o restored -p keys/private.pem -s keys/dilithium_pub.pem
+
+# 4. 信息查看
 fzjjyz info -i output.fzj
 
-# 4. 密钥管理
+# 5. 密钥管理
 fzjjyz keymanage -a verify -p keys/public.pem -s keys/private.pem
 fzjjyz keymanage -a export -s keys/private.pem -o extracted_public.pem
+fzjjyz keymanage -a cache-info  # 查看缓存信息
 
-# 5. 高级选项
+# 6. 国际化 (v0.2.0 新增)
+export LANG=en_US  # 切换到英文
+export LANG=zh_CN  # 切换到中文
+
+# 7. 高级选项
 # 指定缓冲区大小（KB）
 fzjjyz encrypt -i large.bin -o large.fzj -p pub.pem -s priv.pem --buffer-size 1024
-# 关闭流式处理
-fzjjyz encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --streaming=false
 # 强制覆盖
 fzjjyz decrypt -i file.fzj -o out.txt -p priv.pem -s pub.pem --force
 # 详细输出
@@ -253,10 +262,15 @@ fzjjyz encrypt -i sensitive.doc -o sensitive.fzj -p recipient_public.pem -s my_p
 # 发送 .fzj 文件，接收方使用私钥解密
 ```
 
-### 2. 安全备份
+### 2. 安全备份（目录）
 ```bash
-# 加密备份文件
+# 方式1: 直接加密目录 (v0.2.0 新增)
+fzjjyz encrypt-dir -i ./important_data -o backup.fzj -p backup_public.pem -s backup_private.pem
+
+# 方式2: 先打包再加密
+tar -czf backup.tar.gz ./important_data/
 fzjjyz encrypt -i backup.tar.gz -o backup.fzj -p backup_public.pem -s backup_private.pem
+
 # 存储到云端或外部存储
 ```
 
@@ -365,22 +379,30 @@ git push origin feature/amazing-feature
 
 **注意**: 这是一个后量子密码学研究项目，旨在探索和演示后量子加密技术。请在理解安全风险的前提下使用。
 
-**当前版本**: v0.1.0
-**最后更新**: 2025-12-26
+**当前版本**: v0.2.0
+**最后更新**: 2025-12-30
 **状态**: ✅ 生产就绪 (持续优化中)
 
 ---
 
 ## 📋 更新日志
 
-### 2025-12-26 (最新)
+### 2025-12-30 (v0.2.0) ✨
+- ✅ **目录加密**: `encrypt-dir` 和 `decrypt-dir` 命令
+- ✅ **国际化**: 自动检测 LANG，支持中英文双语
+- ✅ **路径防护**: 自动检测并阻止 ZIP 路径遍历攻击
+- ✅ **缓存信息**: `keymanage -a cache-info` 查看统计
+- ✅ **测试覆盖**: 关键模块 >80% 测试覆盖率
+- ✅ **文档更新**: 完整的使用文档和架构说明
+
+### 2025-12-26 (v0.1.1)
 - ✅ **安全增强**: 密钥缓存支持 TTL 和大小限制
 - ✅ **错误优化**: 详细的错误提示和解决方案
 - ✅ **性能测试**: 新增基准测试套件
 - ✅ **代码质量**: 消除重复代码，提升可维护性
 - ✅ **文档更新**: 完善使用指南和最佳实践
 
-### 2025-12-21
+### 2025-12-21 (v0.1.0)
 - ✅ 初始版本发布
 - ✅ 核心加密功能
 - ✅ 流式处理支持

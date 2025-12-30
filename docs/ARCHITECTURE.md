@@ -7,12 +7,14 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        CLI 层 (cmd/fzjjyz)                   │
-│  encrypt | decrypt | keygen | keymanage | info | version    │
+│  encrypt | decrypt | encrypt-dir | decrypt-dir              │
+│  keygen | keymanage | info | version                        │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                    核心层 (internal/crypto)                  │
 │  operations | keyfile | keygen | hybrid | signature         │
+│  archive (目录打包) | stream_encrypt | stream_decrypt       │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -24,11 +26,82 @@
 │                    工具层 (internal/utils)                   │
 │  errors | logger | buffer_pool                              │
 └─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    国际化层 (internal/i18n)                  │
+│  i18n | cobra integration | zh_CN / en_US                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 新增功能模块 (v0.2.0)
+
+#### 目录加密/解密流程
+```
+目录 → ZIP 打包 → 加密 → .fzj 文件
+  ↓
+.fzj 文件 → 解密 → ZIP 解压 → 恢复目录
+```
+
+#### 国际化系统
+```
+LANG 环境变量 → 自动检测 → 选择字典 → 翻译输出
+  ↓
+支持: zh_CN (默认) / en_US
 ```
 
 ## 📦 模块详解
 
 ### 1. 密码学核心 (internal/crypto)
+
+#### archive.go - 目录归档 (v0.2.0 新增)
+
+**职责**: 目录打包和解压，支持路径遍历防护
+
+```go
+func CreateZipFromDirectory(dir string, w io.Writer, opts *ArchiveOptions) error
+func ExtractZipToDirectory(data []byte, outputDir string) error
+func GetZipSize(data []byte) (int64, error)
+func CountZipFiles(data []byte) (int, error)
+```
+
+**安全特性**:
+- ✅ 路径遍历检测 (`..` 和绝对路径)
+- ✅ 目录权限验证
+- ✅ 文件数量限制 (可选)
+
+**使用流程**:
+```
+目录加密:
+  dir/ → CreateZipFromDirectory → ZIP缓冲区 → Encrypt → .fzj
+
+目录解密:
+  .fzj → Decrypt → ZIP缓冲区 → ExtractZipToDirectory → dir/
+```
+
+#### keyfile.go - 密钥文件管理 + 缓存系统
+
+**新增缓存功能** (v0.2.0):
+```go
+type KeyCache struct {
+    cache      sync.Map
+    mu         sync.RWMutex
+    hitCount   uint64
+    loadCount  uint64
+    maxEntries int
+    ttl        time.Duration
+}
+
+func LoadPublicKeyCached(path string) (kem.PublicKey, error)
+func LoadPrivateKeyCached(path string) (kem.PrivateKey, error)
+func GetCacheInfo() CacheInfo
+```
+
+**缓存特性**:
+- TTL: 1 小时自动过期
+- 大小限制: 最多 100 个密钥
+- 后台清理: 每 5 分钟
+- 线程安全: sync.Map
+- 统计信息: 命中率、加载次数
 
 #### hybrid.go - 混合加密系统
 
@@ -505,6 +578,78 @@ cmd/fzjjyz/
 go test -bench=. -benchmem ./internal/crypto/
 ```
 
+### 4. 国际化模块 (internal/i18n) - v0.2.0 新增
+
+#### i18n.go - 核心翻译系统
+
+**职责**: 多语言支持和翻译管理
+
+```go
+type Dictionary map[string]string
+
+var (
+    globalDict Dictionary
+    currentLang string
+    once        sync.Once
+)
+
+func Init(lang string) error
+func T(key string, args ...interface{}) string
+func Get(key string) string
+func SetLanguage(lang string) error
+func GetLanguage() string
+func TranslateError(key string, args ...interface{}) error
+```
+
+**支持语言**:
+- `zh_CN` - 简体中文 (默认)
+- `en_US` - English
+
+**翻译字典结构**:
+```go
+{
+    "encrypt.short": "加密文件",
+    "decrypt.short": "解密文件",
+    "keygen.short": "生成密钥",
+    "status.success_encrypt": "✅ 加密成功！",
+    "error.file_not_exists": "文件不存在: %s",
+    // ... 更多翻译
+}
+```
+
+#### cobra.go - Cobra CLI 集成
+
+**职责**: 自动翻译 CLI 帮助信息
+
+```go
+func AddCommandTranslations(cmd *cobra.Command)
+func TranslateUsage(cmd *cobra.Command)
+```
+
+**自动翻译**:
+- 命令描述
+- 参数说明
+- 帮助信息
+- 错误消息
+
+#### 安全考虑
+
+**格式字符串安全**:
+```go
+// ❌ 危险 - 可能导致注入
+fmt.Printf(i18n.T(key) + "\n")
+
+// ✅ 安全 - 使用 Get() 或中间变量
+fmt.Printf("%s\n", i18n.Get(key))
+msg := i18n.T(key)
+fmt.Printf("%s\n", msg)
+```
+
+**并发安全**:
+- `sync.Once` 确保单次初始化
+- `sync.Map` 保证线程安全
+- 只读字典，无竞态条件
+
 ## 📦 依赖关系
 
 ```
@@ -512,17 +657,23 @@ fzjjyz
 ├── Go 标准库
 │   ├── crypto/ecdh
 │   ├── crypto/sha256
+│   ├── encoding/binary
 │   ├── encoding/pem
+│   ├── archive/zip (v0.2.0)
 │   ├── io
 │   ├── sync
-│   └── time
+│   ├── time
+│   └── strings
 │
 ├── Cloudflare CIRCL
-│   ├── github.com/cloudflare/circl/kem
+│   ├── github.com/cloudflare/circl/kem (Kyber768)
 │   └── github.com/cloudflare/circl/sign/dilithium/mode3
 │
-└── Cobra CLI
-    └── github.com/spf13/cobra
+├── Cobra CLI
+│   └── github.com/spf13/cobra
+│
+└── 进度条 (可选)
+    └── github.com/schollz/progressbar/v3
 ```
 
 ## 🎓 设计模式
