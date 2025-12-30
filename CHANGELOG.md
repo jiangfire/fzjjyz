@@ -31,6 +31,28 @@
 
 ## [Unreleased] - 未发布
 
+### Fixed
+
+#### 错误处理改进
+- **archive.go 错误处理修复** (`internal/crypto/archive.go`)
+  - 改进 defer 错误处理，确保关闭错误能正确返回
+  - 使用闭包捕获错误，避免 defer 忽略错误
+  - 提升文件操作的健壮性
+
+- **输入验证增强** (`cmd/fzjjyz/utils/errors.go`)
+  - 增强 ConfirmPrompt 的错误处理
+  - 处理 fmt.Scanln 失败情况，返回默认值
+  - 提升 CLI 交互的稳定性
+
+#### 依赖更新
+- **版本升级**
+  - `github.com/cloudflare/circl`: v1.6.1 → v1.6.2
+  - `github.com/spf13/pflag`: v1.0.9 → v1.0.10
+  - `golang.org/x/sys`: v0.29.0 → v0.39.0
+
+- **配置调整**
+  - 修复 golangci.yml 中的 Go 版本配置
+
 ### Planned (计划中)
 
 #### Added
