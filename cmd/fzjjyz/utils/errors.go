@@ -140,7 +140,11 @@ func ConfirmPrompt(message string, defaultYes bool) bool {
 		fmt.Printf("%s [y/N]: ", message)
 	}
 
-	fmt.Scanln(&response)
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		// 如果读取失败，返回默认值
+		return defaultYes
+	}
 	response = strings.TrimSpace(strings.ToLower(response))
 
 	if response == "" {

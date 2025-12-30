@@ -4,7 +4,7 @@ version: "2"
 run:
   timeout: 5m                # 5分钟超时（替代原 deadline）
   tests: true                # 检查测试文件
-  go: "1.25"                 # 适配你的 Go 1.25.3 版本
+  go: "1.23"                 # 适配你的 Go 1.25.3 版本
   severity: warning          # 仅显示警告及以上级别问题
 
 # Linter 个性化配置（v2.x 字段名改为单数 linter-settings）

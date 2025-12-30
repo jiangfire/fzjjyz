@@ -46,7 +46,11 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 
 	// 创建ZIP写入器
 	zipWriter := zip.NewWriter(output)
-	defer zipWriter.Close()
+	defer func() {
+		if closeErr := zipWriter.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 
 	// 获取源目录的绝对路径（用于计算相对路径）
 	absSource, err := filepath.Abs(sourceDir)
@@ -112,7 +116,11 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() {
+			if closeErr := file.Close(); closeErr != nil && err == nil {
+				err = closeErr
+			}
+		}()
 
 		_, err = io.Copy(header, file)
 		return err
@@ -181,14 +189,22 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		if err != nil {
 			return err
 		}
-		defer srcFile.Close()
+		defer func() {
+			if closeErr := srcFile.Close(); closeErr != nil && err == nil {
+				err = closeErr
+			}
+		}()
 
 		// 创建目标文件
 		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, file.Mode())
 		if err != nil {
 			return err
 		}
-		defer dstFile.Close()
+		defer func() {
+			if closeErr := dstFile.Close(); closeErr != nil && err == nil {
+				err = closeErr
+			}
+		}()
 
 		// 复制内容
 		if _, err := io.Copy(dstFile, srcFile); err != nil {

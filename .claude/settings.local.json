@@ -68,7 +68,8 @@
       "Bash(LANG=en_US ../fzjjyz keymanage:*)",
       "Bash(golangci-lint run:*)",
       "Bash(go vet:*)",
-      "Bash(go fmt:*)"
+      "Bash(go fmt:*)",
+      "Bash(golangci-lint:*)"
     ]
   }
 }
