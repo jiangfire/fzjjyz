@@ -112,3 +112,9 @@ test_*.go
 # 测试目录中的密钥
 **/test_cli/testkey_*.pem
 **/test_cli/import_test/testkey_*.pem
+ci-check.txt
+.claude/settings.local.json
+docs/issues/nul
+docs/issues/ci-check-current.txt
+.gitignore
+docs/golangci-lint-result.txt

@@ -221,6 +221,7 @@ func BenchmarkCachePerformance(b *testing.B) {
 }
 
 // TestPerformanceComparison 性能对比测试.
+//
 //nolint:funlen // 测试函数需要完整覆盖所有场景
 func TestPerformanceComparison(t *testing.T) {
 	// 生成密钥

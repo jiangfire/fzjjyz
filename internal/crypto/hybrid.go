@@ -14,19 +14,19 @@ import (
 )
 
 // HybridEncryptor 混合加密器
-// 结合后量子密码（Kyber）和传统密码（ECDH）提供双重保护
+// 结合后量子密码（Kyber）和传统密码（ECDH）提供双重保护.
 type HybridEncryptor struct {
 	kyberPub kem.PublicKey
 	ecdhPub  *ecdh.PublicKey
 }
 
-// HybridDecryptor 混合解密器
+// HybridDecryptor 混合解密器.
 type HybridDecryptor struct {
 	kyberPriv kem.PrivateKey
 	ecdhPriv  *ecdh.PrivateKey
 }
 
-// NewHybridEncryptor 创建混合加密器
+// NewHybridEncryptor 创建混合加密器.
 func NewHybridEncryptor(kyberPub kem.PublicKey, ecdhPub *ecdh.PublicKey) *HybridEncryptor {
 	return &HybridEncryptor{
 		kyberPub: kyberPub,
@@ -34,7 +34,7 @@ func NewHybridEncryptor(kyberPub kem.PublicKey, ecdhPub *ecdh.PublicKey) *Hybrid
 	}
 }
 
-// NewHybridDecryptor 创建混合解密器
+// NewHybridDecryptor 创建混合解密器.
 func NewHybridDecryptor(kyberPriv kem.PrivateKey, ecdhPriv *ecdh.PrivateKey) *HybridDecryptor {
 	return &HybridDecryptor{
 		kyberPriv: kyberPriv,
@@ -48,7 +48,7 @@ func NewHybridDecryptor(kyberPriv kem.PrivateKey, ecdhPriv *ecdh.PrivateKey) *Hy
 // 加密流程:
 // 1. Kyber768 封装 → 1088B 密文 + 32B Kyber 共享密钥
 // 2. 生成临时 ECDH 密钥对 → 32B 临时公钥 + 32B ECDH 共享密钥
-// 3. SHA256(Kyber密钥 + ECDH密钥) → 32B 最终密钥
+// 3. SHA256(Kyber密钥 + ECDH密钥) → 32B 最终密钥.
 func (e *HybridEncryptor) Encapsulate() (encapsulated []byte, ecdhPub []byte, sharedSecret []byte, err error) {
 	// 步骤1: Kyber 封装
 	kyberScheme := kyber768.Scheme()
@@ -91,7 +91,7 @@ func (e *HybridEncryptor) Encapsulate() (encapsulated []byte, ecdhPub []byte, sh
 // 解密流程:
 // 1. Kyber768 解封装 → 32B Kyber 共享密钥
 // 2. ECDH X25519 密钥交换（使用临时公钥）→ 32B ECDH 共享密钥
-// 3. SHA256(Kyber密钥 + ECDH密钥) → 32B 最终密钥
+// 3. SHA256(Kyber密钥 + ECDH密钥) → 32B 最终密钥.
 func (d *HybridDecryptor) Decapsulate(encapsulated []byte, ecdhPub []byte) ([]byte, error) {
 	// 步骤1: Kyber 解封装
 	kyberScheme := kyber768.Scheme()
@@ -132,7 +132,7 @@ func (d *HybridDecryptor) Decapsulate(encapsulated []byte, ecdhPub []byte) ([]by
 // AES-GCM 特性:
 // - 机密性: AES-256 加密
 // - 完整性: GCM 认证标签
-// - 防重放: 随机 Nonce
+// - 防重放: 随机 Nonce.
 func AESGCMEncrypt(key []byte, plaintext []byte) (ciphertext []byte, nonce []byte, err error) {
 	// 验证密钥长度 (必须是 32B 用于 AES-256)
 	if len(key) != 32 {
@@ -178,7 +178,7 @@ func AESGCMEncrypt(key []byte, plaintext []byte) (ciphertext []byte, nonce []byt
 // 输入: 32B 密钥, 密文, 12B Nonce
 // 返回: 明文, 错误
 //
-// 自动验证数据完整性和真实性
+// 自动验证数据完整性和真实性.
 func AESGCMDecrypt(key []byte, ciphertext []byte, nonce []byte) ([]byte, error) {
 	// 验证密钥长度
 	if len(key) != 32 {

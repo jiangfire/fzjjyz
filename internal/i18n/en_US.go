@@ -1,6 +1,6 @@
 package i18n
 
-// enUS 英文翻译字典
+// enUS 英文翻译字典.
 type enUS struct{}
 
 func (e *enUS) Get(key string) string {
@@ -11,7 +11,7 @@ func (e *enUS) Get(key string) string {
 	return translation
 }
 
-// enTranslations 英文翻译映射
+// enTranslations 英文翻译映射.
 var enTranslations = map[string]string{
 	// 根命令和应用信息
 	"app.name":        "fzjjyz",
@@ -241,24 +241,25 @@ Examples:
 	"progress.saving_keys":          "Saving key files...",
 
 	// Status messages
-	"status.done":                   "Done",
-	"status.failed":                 "Failed",
-	"status.warning_no_sign_verify": "⚠️  Warning: No signature verification key provided, skipping signature verification",
-	"status.success_encrypt":        "✅ Encryption successful!",
-	"status.success_decrypt":        "✅ Decryption successful!",
-	"status.success_keygen":         "✅ Key pair generated successfully!",
-	"status.success_export":         "✅ Public key exported to: %s",
-	"status.success_import":         "✅ Keys imported to: %s",
-	"status.success_verify":         "✅ Key pair verified",
-	"status.failed_verify":          "❌ Key pair mismatch",
-	"status.encrypting_file":        "Encrypting file: %s",
-	"status.decrypting_file":        "Decrypting file: %s",
-	"status.encrypting_dir":         "Encrypting directory: %s",
-	"status.decrypting_dir":         "Decrypting directory: %s",
-	"status.generating_keys":        "Generating key pair...",
-	"status.public_key":             "Public key",
-	"status.sign_key":               "Sign key",
-	"status.streaming_mode":         "Streaming mode",
+	"status.done":   "Done",
+	"status.failed": "Failed",
+	"status.warning_no_sign_verify": "⚠️  Warning: No signature verification key " +
+		"provided, skipping signature verification",
+	"status.success_encrypt": "✅ Encryption successful!",
+	"status.success_decrypt": "✅ Decryption successful!",
+	"status.success_keygen":  "✅ Key pair generated successfully!",
+	"status.success_export":  "✅ Public key exported to: %s",
+	"status.success_import":  "✅ Keys imported to: %s",
+	"status.success_verify":  "✅ Key pair verified",
+	"status.failed_verify":   "❌ Key pair mismatch",
+	"status.encrypting_file": "Encrypting file: %s",
+	"status.decrypting_file": "Decrypting file: %s",
+	"status.encrypting_dir":  "Encrypting directory: %s",
+	"status.decrypting_dir":  "Decrypting directory: %s",
+	"status.generating_keys": "Generating key pair...",
+	"status.public_key":      "Public key",
+	"status.sign_key":        "Sign key",
+	"status.streaming_mode":  "Streaming mode",
 
 	// File info output
 	"file_info.header":            "📁 File info: %s",

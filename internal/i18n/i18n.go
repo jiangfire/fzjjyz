@@ -6,12 +6,12 @@ import (
 	"sync"
 )
 
-// TranslationDict 翻译字典接口
+// TranslationDict 翻译字典接口.
 type TranslationDict interface {
 	Get(key string) string
 }
 
-// 全局变量
+// 全局变量.
 var (
 	globalDict  TranslationDict
 	currentLang string
@@ -19,7 +19,7 @@ var (
 	mu          sync.RWMutex
 )
 
-// 默认语言
+// 默认语言.
 const defaultLang = "zh_CN"
 
 // Init 初始化国际化系统
@@ -43,7 +43,7 @@ func Init(lang string) error {
 		if lang != defaultLang {
 			dict, err = loadLanguage(defaultLang)
 			if err != nil {
-				return fmt.Errorf("无法加载默认语言 %s: %v", defaultLang, err)
+				return fmt.Errorf("无法加载默认语言 %s: %w", defaultLang, err)
 			}
 			currentLang = defaultLang
 			globalDict = dict
@@ -58,7 +58,7 @@ func Init(lang string) error {
 }
 
 // T 翻译主函数
-// 用法: i18n.T("encrypt.short") 或 i18n.T("error.file_not_exists", "test.txt")
+// 用法: i18n.T("encrypt.short") 或 i18n.T("error.file_not_exists", "test.txt").
 func T(key string, args ...interface{}) string {
 	once.Do(func() {
 		if globalDict == nil {
@@ -92,7 +92,7 @@ func T(key string, args ...interface{}) string {
 }
 
 // Get 翻译函数（无格式化参数），用于动态 key
-// 用法: i18n.Get(keyPrefix + ".short")
+// 用法: i18n.Get(keyPrefix + ".short").
 func Get(key string) string {
 	once.Do(func() {
 		if globalDict == nil {
@@ -114,27 +114,19 @@ func Get(key string) string {
 	return key
 }
 
-// SetLanguage 动态切换语言
+// SetLanguage 动态切换语言.
 func SetLanguage(lang string) error {
 	return Init(lang)
 }
 
-// GetLanguage 获取当前语言
+// GetLanguage 获取当前语言.
 func GetLanguage() string {
 	mu.RLock()
 	defer mu.RUnlock()
 	return currentLang
 }
 
-// formatString 格式化字符串（支持 fmt.Sprintf 语法）
-func formatString(format string, args ...interface{}) string {
-	if len(args) == 0 {
-		return format
-	}
-	return fmt.Sprintf(format, args...)
-}
-
-// loadLanguage 加载指定语言的字典
+// loadLanguage 加载指定语言的字典.
 func loadLanguage(lang string) (TranslationDict, error) {
 	switch lang {
 	case "zh_CN", "zh-CN", "zh":
@@ -147,9 +139,9 @@ func loadLanguage(lang string) (TranslationDict, error) {
 	}
 }
 
-// emptyDict 空字典，用于错误回退
+// emptyDict 空字典，用于错误回退.
 type emptyDict struct{}
 
-func (e *emptyDict) Get(key string) string {
+func (e *emptyDict) Get(_ string) string {
 	return ""
 }

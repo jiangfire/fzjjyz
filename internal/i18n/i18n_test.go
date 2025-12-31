@@ -6,7 +6,12 @@ import (
 	"testing"
 )
 
-// TestInit 测试初始化功能
+const (
+	testLang       = "zh_CN"
+	nonexistentKey = "nonexistent.key"
+)
+
+// TestInit 测试初始化功能.
 func TestInit(t *testing.T) {
 	// 重置状态
 	globalDict = nil
@@ -14,11 +19,11 @@ func TestInit(t *testing.T) {
 	once = sync.Once{}
 
 	// 测试初始化中文
-	err := Init("zh_CN")
+	err := Init(testLang)
 	if err != nil {
 		t.Fatalf("初始化中文失败: %v", err)
 	}
-	if GetLanguage() != "zh_CN" {
+	if GetLanguage() != testLang {
 		t.Errorf("期望语言 zh_CN，实际得到 %s", GetLanguage())
 	}
 
@@ -46,15 +51,17 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Errorf("不支持的语言应该回退到默认语言，不应返回错误: %v", err)
 	}
-	if GetLanguage() != "zh_CN" {
+	if GetLanguage() != testLang {
 		t.Errorf("不支持的语言应回退到 zh_CN，实际得到 %s", GetLanguage())
 	}
 }
 
-// TestT 测试翻译函数
+// TestT 测试翻译函数.
 func TestT(t *testing.T) {
 	// 初始化中文
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	// 测试简单翻译
 	result := T("encrypt.short")
@@ -72,15 +79,17 @@ func TestT(t *testing.T) {
 	}
 
 	// 测试不存在的 key
-	result = T("nonexistent.key")
-	if result != "nonexistent.key" {
+	result = T(nonexistentKey)
+	if result != nonexistentKey {
 		t.Errorf("不存在的 key 应该返回自身，实际得到: %s", result)
 	}
 }
 
-// TestGet 测试 Get 函数（动态 key）
+// TestGet 测试 Get 函数（动态 key）.
 func TestGet(t *testing.T) {
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	// 测试动态 key
 	keyPrefix := "encrypt"
@@ -90,16 +99,16 @@ func TestGet(t *testing.T) {
 	}
 
 	// 测试不存在的 key
-	result = Get("nonexistent.key")
-	if result != "nonexistent.key" {
+	result = Get(nonexistentKey)
+	if result != nonexistentKey {
 		t.Errorf("不存在的 key 应该返回自身，实际得到: %s", result)
 	}
 }
 
-// TestSetLanguage 测试动态切换语言
+// TestSetLanguage 测试动态切换语言.
 func TestSetLanguage(t *testing.T) {
 	// 先设置中文
-	err := SetLanguage("zh_CN")
+	err := SetLanguage(testLang)
 	if err != nil {
 		t.Fatalf("设置中文失败: %v", err)
 	}
@@ -120,9 +129,11 @@ func TestSetLanguage(t *testing.T) {
 	}
 }
 
-// TestTranslateError 测试错误翻译
+// TestTranslateError 测试错误翻译.
 func TestTranslateError(t *testing.T) {
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	err := TranslateError("error.file_not_exists", "test.txt")
 	if err == nil {
@@ -135,9 +146,11 @@ func TestTranslateError(t *testing.T) {
 	}
 }
 
-// TestMustTranslate 测试强制翻译
+// TestMustTranslate 测试强制翻译.
 func TestMustTranslate(t *testing.T) {
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	// 存在的 key
 	result := MustTranslate("encrypt.short")
@@ -146,15 +159,17 @@ func TestMustTranslate(t *testing.T) {
 	}
 
 	// 不存在的 key
-	result = MustTranslate("nonexistent.key")
-	if result != "nonexistent.key" {
+	result = MustTranslate(nonexistentKey)
+	if result != nonexistentKey {
 		t.Errorf("不存在的 key 应该返回 key 本身，实际得到: %s", result)
 	}
 }
 
-// TestConcurrentAccess 测试并发访问
+// TestConcurrentAccess 测试并发访问.
 func TestConcurrentAccess(t *testing.T) {
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	done := make(chan bool, 10)
 
@@ -173,9 +188,11 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 }
 
-// TestFormatString 测试格式化字符串
+// TestFormatString 测试格式化字符串.
 func TestFormatString(t *testing.T) {
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	// 测试带格式占位符的翻译
 	result := T("error.file_not_exists", "missing.txt")
@@ -190,7 +207,7 @@ func TestFormatString(t *testing.T) {
 	}
 }
 
-// TestEmptyDict 测试空字典回退
+// TestEmptyDict 测试空字典回退.
 func TestEmptyDict(t *testing.T) {
 	// 重置全局状态
 	globalDict = nil
@@ -208,10 +225,12 @@ func TestEmptyDict(t *testing.T) {
 	}
 }
 
-// TestTranslationAccuracy 测试翻译准确性
+// TestTranslationAccuracy 测试翻译准确性.
 func TestTranslationAccuracy(t *testing.T) {
 	// 测试中文翻译
-	Init("zh_CN")
+	if err := Init(testLang); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	tests := []struct {
 		key      string
@@ -232,7 +251,9 @@ func TestTranslationAccuracy(t *testing.T) {
 	}
 
 	// 测试英文翻译
-	Init("en_US")
+	if err := Init("en_US"); err != nil {
+		t.Fatalf("初始化失败: %v", err)
+	}
 
 	for _, tt := range tests {
 		result := T(tt.key)
@@ -242,14 +263,20 @@ func TestTranslationAccuracy(t *testing.T) {
 	}
 }
 
-// TestGetWithEnvironment 测试环境变量检测
+// TestGetWithEnvironment 测试环境变量检测.
 func TestGetWithEnvironment(t *testing.T) {
 	// 保存原环境变量
 	origLang := os.Getenv("LANG")
-	defer os.Setenv("LANG", origLang)
+	defer func() {
+		if err := os.Setenv("LANG", origLang); err != nil {
+			t.Fatalf("恢复环境变量失败: %v", err)
+		}
+	}()
 
 	// 设置环境变量为中文
-	os.Setenv("LANG", "zh_CN")
+	if err := os.Setenv("LANG", testLang); err != nil {
+		t.Fatalf("设置环境变量失败: %v", err)
+	}
 
 	// 重置状态
 	globalDict = nil
@@ -261,7 +288,7 @@ func TestGetWithEnvironment(t *testing.T) {
 		t.Fatalf("自动初始化失败: %v", err)
 	}
 
-	if GetLanguage() != "zh_CN" {
+	if GetLanguage() != testLang {
 		t.Errorf("期望自动检测到 zh_CN，实际得到 %s", GetLanguage())
 	}
 }

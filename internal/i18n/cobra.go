@@ -1,3 +1,4 @@
+// Package i18n provides internationalization support for Cobra commands.
 package i18n
 
 import (
@@ -5,7 +6,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// TranslateCommand 自动翻译 Cobra 命令的所有文本
+// TranslateCommand 自动翻译 Cobra 命令的所有文本.
 func TranslateCommand(cmd *cobra.Command, keyPrefix string) {
 	if cmd == nil {
 		return
@@ -39,7 +40,7 @@ func TranslateCommand(cmd *cobra.Command, keyPrefix string) {
 	}
 }
 
-// TranslateError 创建翻译后的错误
+// TranslateError 创建翻译后的错误.
 func TranslateError(key string, args ...interface{}) error {
 	return &TranslatedError{
 		key:  key,
@@ -47,7 +48,7 @@ func TranslateError(key string, args ...interface{}) error {
 	}
 }
 
-// TranslatedError 翻译后的错误类型
+// TranslatedError 翻译后的错误类型.
 type TranslatedError struct {
 	key  string
 	args []interface{}
@@ -57,7 +58,7 @@ func (e *TranslatedError) Error() string {
 	return T(e.key, e.args...)
 }
 
-// MustTranslate 强制翻译（用于测试或确保翻译存在）
+// MustTranslate 强制翻译（用于测试或确保翻译存在）.
 func MustTranslate(key string, args ...interface{}) string {
 	result := T(key, args...)
 	if result == "" {

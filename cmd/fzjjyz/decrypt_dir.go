@@ -1,3 +1,4 @@
+// Package main 提供文件加密解密命令行工具.
 package main
 
 import (
@@ -37,14 +38,15 @@ func newDecryptDirCmd() *cobra.Command {
 	cmd.Flags().IntVar(&decryptDirBufferSize, "buffer-size", 0, i18n.T("decrypt-dir.flags.buffer-size"))
 	cmd.Flags().BoolVar(&decryptDirStreaming, "streaming", true, i18n.T("decrypt-dir.flags.streaming"))
 
-	cmd.MarkFlagRequired("input")
-	cmd.MarkFlagRequired("output")
-	cmd.MarkFlagRequired("private-key")
+	_ = cmd.MarkFlagRequired("input")
+	_ = cmd.MarkFlagRequired("output")
+	_ = cmd.MarkFlagRequired("private-key")
 
 	return cmd
 }
 
-func runDecryptDir(cmd *cobra.Command, args []string) error {
+//nolint:gocognit,funlen
+func runDecryptDir(_ *cobra.Command, _ []string) error {
 	// 验证输入文件
 	if _, err := os.Stat(decryptDirInput); err != nil {
 		return fmt.Errorf(i18n.T("error.encrypted_file_not_exists"), decryptDirInput)
@@ -66,11 +68,15 @@ func runDecryptDir(cmd *cobra.Command, args []string) error {
 	}
 
 	// 读取文件头以获取信息
-	headerFile, err := os.Open(decryptDirInput)
+	headerFile, err := os.Open(decryptDirInput) // #nosec G304 - 文件路径来自用户输入，已通过参数验证
 	if err != nil {
 		return fmt.Errorf(i18n.T("error.cannot_open_file"), err)
 	}
-	defer headerFile.Close()
+	defer func() {
+		if closeErr := headerFile.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 
 	header, err := format.ParseFileHeader(headerFile)
 	if err != nil {
@@ -94,7 +100,8 @@ func runDecryptDir(cmd *cobra.Command, args []string) error {
 	hybridPriv, err := crypto.LoadPrivateKeyCached(decryptDirPrivKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.load_private_key_failed", err, decryptDirPrivKey)
+		return fmt.Errorf("load private key failed: %w",
+			i18n.TranslateError("error.load_private_key_failed", err, decryptDirPrivKey))
 	}
 
 	var dilithiumPub interface{}
@@ -102,7 +109,8 @@ func runDecryptDir(cmd *cobra.Command, args []string) error {
 		dilithiumPub, err = crypto.LoadDilithiumPublicKeyCached(decryptDirVerifyKey)
 		if err != nil {
 			fmt.Println(i18n.T("status.failed"))
-			return i18n.TranslateError("error.load_verify_key_failed", err, decryptDirVerifyKey)
+			return fmt.Errorf("load verify key failed: %w",
+				i18n.TranslateError("error.load_verify_key_failed", err, decryptDirVerifyKey))
 		}
 	} else {
 		fmt.Println(i18n.T("status.warning_no_sign_verify"))
@@ -151,15 +159,21 @@ func runDecryptDir(cmd *cobra.Command, args []string) error {
 
 	if err := decryptFunc(); err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.decrypt_failed", err)
+		return fmt.Errorf("decrypt failed: %w",
+			i18n.TranslateError("error.decrypt_failed", err))
 	}
-	defer os.Remove(tempZipPath) // 清理临时文件
+	defer func() {
+		if removeErr := os.Remove(tempZipPath); removeErr != nil {
+			_ = removeErr // 忽略清理错误，不影响主流程
+		}
+	}() // 清理临时文件
 
 	// 读取解密的ZIP数据
-	zipData, err := os.ReadFile(tempZipPath)
+	zipData, err := os.ReadFile(tempZipPath) // #nosec G304 - 临时文件路径由程序生成，安全可控
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.cannot_read_data", err)
+		return fmt.Errorf("cannot read data: %w",
+			i18n.TranslateError("error.cannot_read_data", err))
 	}
 
 	zipSize := len(zipData)
@@ -170,7 +184,8 @@ func runDecryptDir(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[3/4] %s ", i18n.T("progress.extracting"))
 	if err := crypto.ExtractZipToDirectory(zipData, decryptDirOutput); err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.extract_failed", err)
+		return fmt.Errorf("extract failed: %w",
+			i18n.TranslateError("error.extract_failed", err))
 	}
 	fmt.Println(i18n.T("status.done"))
 

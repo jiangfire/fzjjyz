@@ -1,3 +1,4 @@
+// Package main 提供文件加密解密命令行工具.
 package main
 
 import (
@@ -33,12 +34,12 @@ func newKeymanageCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&keymanageOutput, "output", "o", "", i18n.T("keymanage.flags.output"))
 	cmd.Flags().StringVarP(&keymanageOutputDir, "output-dir", "d", ".", i18n.T("keymanage.flags.output-dir"))
 
-	cmd.MarkFlagRequired("action")
+	_ = cmd.MarkFlagRequired("action")
 
 	return cmd
 }
 
-func runKeymanage(cmd *cobra.Command, args []string) error {
+func runKeymanage(_ *cobra.Command, _ []string) error {
 	switch keymanageAction {
 	case "export":
 		return runExport()
@@ -65,7 +66,8 @@ func runExport() error {
 	// 加载私钥文件
 	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
-		return i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey)
+		return fmt.Errorf("load private key failed: %w",
+			i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey))
 	}
 
 	// 从私钥中提取公钥
@@ -75,12 +77,14 @@ func runExport() error {
 	// 导出公钥到 PEM
 	pubPEM, err := crypto.ExportPublicKey(kyberPub, ecdhPub)
 	if err != nil {
-		return i18n.TranslateError("error.export_key_failed", err)
+		return fmt.Errorf("export key failed: %w",
+			i18n.TranslateError("error.export_key_failed", err))
 	}
 
 	// 保存公钥文件
-	if err := os.WriteFile(keymanageOutput, pubPEM, 0644); err != nil {
-		return i18n.TranslateError("error.save_export_failed", err)
+	if err := os.WriteFile(keymanageOutput, pubPEM, 0600); err != nil {
+		return fmt.Errorf("save export failed: %w",
+			i18n.TranslateError("error.save_export_failed", err))
 	}
 
 	fmt.Printf(i18n.T("status.success_export")+"\n", keymanageOutput)
@@ -100,19 +104,21 @@ func runImport() error {
 	fmt.Println(i18n.T("status.success_import") + "...")
 
 	// 创建输出目录
-	if err := os.MkdirAll(keymanageOutputDir, 0755); err != nil {
+	if err := os.MkdirAll(keymanageOutputDir, 0750); err != nil {
 		return fmt.Errorf(i18n.T("error.cannot_create_dir"), keymanageOutputDir, err)
 	}
 
 	// 加载密钥
 	hybridPub, err := crypto.LoadPublicKey(keymanagePubKey)
 	if err != nil {
-		return i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey)
+		return fmt.Errorf("load public key failed: %w",
+			i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey))
 	}
 
 	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
-		return i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey)
+		return fmt.Errorf("load private key failed: %w",
+			i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey))
 	}
 
 	// 生成新路径
@@ -122,8 +128,16 @@ func runImport() error {
 	newPrivPath := filepath.Join(keymanageOutputDir, basePriv)
 
 	// 保存到新位置
-	if err := crypto.SaveKeyFiles(hybridPub.Kyber, hybridPub.ECDH, hybridPriv.Kyber, hybridPriv.ECDH, newPubPath, newPrivPath); err != nil {
-		return i18n.TranslateError("error.save_keys_failed", err)
+	if err := crypto.SaveKeyFiles(
+		hybridPub.Kyber,
+		hybridPub.ECDH,
+		hybridPriv.Kyber,
+		hybridPriv.ECDH,
+		newPubPath,
+		newPrivPath,
+	); err != nil {
+		return fmt.Errorf("save keys failed: %w",
+			i18n.TranslateError("error.save_keys_failed", err))
 	}
 
 	fmt.Printf(i18n.T("status.success_import")+"\n", keymanageOutputDir)
@@ -145,14 +159,16 @@ func runVerify() error {
 	hybridPub, err := crypto.LoadPublicKey(keymanagePubKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey)
+		return fmt.Errorf("load public key failed: %w",
+			i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey))
 	}
 
 	// 加载私钥
 	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey)
+		return fmt.Errorf("load private key failed: %w",
+			i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey))
 	}
 
 	// 验证密钥对是否匹配
@@ -178,7 +194,8 @@ func runVerify() error {
 		if !ecdhMatch {
 			fmt.Printf(i18n.T("keymanage_verify.ecdh")+"\n", "❌")
 		}
-		return i18n.TranslateError("error.verify_keys_failed")
+		return fmt.Errorf("verify keys failed: %w",
+			i18n.TranslateError("error.verify_keys_failed"))
 	}
 
 	return nil

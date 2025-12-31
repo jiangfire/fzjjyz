@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-
-	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 )
 
 func TestSaveKeyFiles(t *testing.T) {
@@ -20,8 +18,7 @@ func TestSaveKeyFiles(t *testing.T) {
 	pubPath := filepath.Join(tempDir, "test_public.pem")
 	privPath := filepath.Join(tempDir, "test_private.pem")
 
-	err := SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath)
-	if err != nil {
+	if err := SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
 		t.Fatalf("SaveKeyFiles failed: %v", err)
 	}
 
@@ -55,7 +52,9 @@ func TestLoadKeyFiles(t *testing.T) {
 	pubPath := filepath.Join(tempDir, "pub.pem")
 	privPath := filepath.Join(tempDir, "priv.pem")
 
-	SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath)
+	if err := SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
+		t.Fatalf("SaveKeyFiles failed: %v", err)
+	}
 
 	// 加载密钥
 	loadedPub, loadedPriv, err := LoadKeyFiles(pubPath, privPath)
@@ -96,9 +95,7 @@ func TestLoadMissingFiles(t *testing.T) {
 		t.Error("Should fail on missing public key file")
 	}
 	// 错误类型是 ErrInvalidParameter，不是 ErrFormatError
-	if !utils.IsFormatError(err) && err != nil {
-		// 只要返回错误即可
-	}
+	// 只要返回错误即可，无需额外处理
 }
 
 func TestSaveToNonExistentDirectory(t *testing.T) {
@@ -126,11 +123,19 @@ func TestSaveKeyFilesContent(t *testing.T) {
 	pubPath := filepath.Join(tempDir, "test.pem")
 	privPath := filepath.Join(tempDir, "test_priv.pem")
 
-	SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath)
+	if err := SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
+		t.Fatalf("SaveKeyFiles failed: %v", err)
+	}
 
 	// 读取文件内容验证格式
-	pubContent, _ := os.ReadFile(pubPath)
-	privContent, _ := os.ReadFile(privPath)
+	pubContent, err := os.ReadFile(pubPath)
+	if err != nil {
+		t.Fatalf("读取公钥文件失败: %v", err)
+	}
+	privContent, err := os.ReadFile(privPath)
+	if err != nil {
+		t.Fatalf("读取私钥文件失败: %v", err)
+	}
 
 	// 验证PEM格式
 	if len(pubContent) == 0 {
@@ -152,7 +157,7 @@ func TestSaveKeyFilesContent(t *testing.T) {
 	}
 }
 
-// 辅助函数
+// 辅助函数.
 func bytesEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false

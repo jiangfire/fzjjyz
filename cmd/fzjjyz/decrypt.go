@@ -1,3 +1,4 @@
+// Package main 提供文件加密解密命令行工具.
 package main
 
 import (
@@ -5,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
@@ -37,29 +39,58 @@ func newDecryptCmd() *cobra.Command {
 	cmd.Flags().IntVar(&decryptBufferSize, "buffer-size", 0, i18n.T("decrypt.flags.buffer-size"))
 	cmd.Flags().BoolVar(&decryptStreaming, "streaming", true, i18n.T("decrypt.flags.streaming"))
 
-	cmd.MarkFlagRequired("input")
-	cmd.MarkFlagRequired("private-key")
+	_ = cmd.MarkFlagRequired("input")
+	_ = cmd.MarkFlagRequired("private-key")
 
 	return cmd
 }
 
-func runDecrypt(cmd *cobra.Command, args []string) error {
-	// 验证输入文件
-	if _, err := os.Stat(decryptInput); err != nil {
-		return fmt.Errorf(i18n.T("error.encrypted_file_not_exists"), decryptInput)
+func runDecrypt(_ *cobra.Command, _ []string) error {
+	return executeDecryptCommand()
+}
+
+func executeDecryptCommand() error {
+	// 步骤1: 验证输入
+	//nolint:wrapcheck
+	if err := utils.ValidateInputFile(decryptInput); err != nil {
+		return err
+	}
+	//nolint:wrapcheck
+	if err := utils.CheckOutputConflict(decryptOutput, decryptForce); err != nil {
+		return err
 	}
 
-	// 读取文件头以获取原始文件名（使用缓存读取，避免大文件问题）
-	// 对于流式解密，我们只需要读取头部
-	headerFile, err := os.Open(decryptInput)
+	// 步骤2: 解析文件头
+	header, err := parseDecryptHeader()
 	if err != nil {
-		return fmt.Errorf(i18n.T("error.cannot_open_file"), err)
+		return err
 	}
-	defer headerFile.Close()
+
+	// 步骤3: 加载密钥
+	reporter := utils.NewProgressReporter(3, verbose)
+	hybridPriv, dilithiumPub, err := loadDecryptKeys(reporter)
+	if err != nil {
+		return err
+	}
+
+	// 步骤4: 执行解密
+	if err := executeDecrypt(reporter, hybridPriv, dilithiumPub, header); err != nil {
+		return err
+	}
+
+	// 步骤5: 显示结果
+	return showDecryptResult(header)
+}
+
+func parseDecryptHeader() (*format.FileHeader, error) {
+	headerFile := utils.MustOpen(decryptInput)
+	defer func() {
+		_ = headerFile.Close()
+	}()
 
 	header, err := format.ParseFileHeader(headerFile)
 	if err != nil {
-		return fmt.Errorf(i18n.T("error.parse_header_failed"), err)
+		return nil, fmt.Errorf(i18n.T("error.parse_header_failed"), err)
 	}
 
 	// 设置默认输出路径
@@ -67,64 +98,85 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 		decryptOutput = header.Filename
 	}
 
-	// 检查输出文件是否已存在
-	if !decryptForce {
-		if _, err := os.Stat(decryptOutput); err == nil {
-			return fmt.Errorf(i18n.T("error.output_file_exists"), decryptOutput)
-		}
-	}
+	return header, nil
+}
 
-	// 显示进度
-	fmt.Printf(i18n.T("status.decrypting_file")+"\n", filepath.Base(decryptInput))
-	if verbose {
-		fmt.Printf("  %s: %s\n", i18n.T("file_info.encrypted_file"), decryptInput)
-		fmt.Printf("  %s: %s\n", i18n.T("file_info.decrypted_file"), decryptOutput)
-		fmt.Printf("  %s: %s\n", i18n.T("status.private_key"), decryptPrivKey)
-		if decryptVerifyKey != "" {
-			fmt.Printf("  %s: %s\n", i18n.T("status.verify_key"), decryptVerifyKey)
-		}
-		fmt.Printf("  %s: %s\n", i18n.T("file_info.original_filename"), header.Filename)
-		fmt.Printf("  %s: %v\n", i18n.T("status.streaming_mode"), decryptStreaming)
-	}
+func loadDecryptKeys(reporter *utils.ProgressReporter) (*crypto.HybridPrivateKey, interface{}, error) {
+	reporter.Step("progress.loading_keys")
 
-	// 加载密钥（使用缓存）
-	fmt.Printf("\n[1/3] %s ", i18n.T("progress.loading_keys"))
-	hybridPriv, err := crypto.LoadPrivateKeyCached(decryptPrivKey)
+	// 加载私钥
+	hybridPriv, err := utils.LoadHybridPrivateKey(decryptPrivKey)
 	if err != nil {
-		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.load_private_key_failed", err, decryptPrivKey)
+		reporter.Failed()
+		//nolint:wrapcheck
+		return nil, nil, err
 	}
 
-	var dilithiumPub interface{}
+	// 加载验证公钥
+	dilithiumPub, err := utils.LoadDilithiumVerifyKey(decryptVerifyKey)
+	if err != nil {
+		reporter.Failed()
+		//nolint:wrapcheck
+		return nil, nil, err
+	}
+
+	// 显示警告
+	if decryptVerifyKey == "" {
+		reporter.Warning("status.warning_no_sign_verify")
+	}
+
+	reporter.Done()
+	return hybridPriv, dilithiumPub, nil
+}
+
+func executeDecrypt(
+	reporter *utils.ProgressReporter,
+	hybridPriv *crypto.HybridPrivateKey,
+	dilithiumPub interface{},
+	header *format.FileHeader,
+) error {
+	// 显示详细信息
+	reporter.InfoString("file_info.encrypted_file", decryptInput)
+	reporter.InfoString("file_info.decrypted_file", decryptOutput)
+	reporter.InfoString("status.private_key", decryptPrivKey)
 	if decryptVerifyKey != "" {
-		dilithiumPub, err = crypto.LoadDilithiumPublicKeyCached(decryptVerifyKey)
-		if err != nil {
-			fmt.Println(i18n.T("status.failed"))
-			return i18n.TranslateError("error.load_verify_key_failed", err, decryptVerifyKey)
-		}
-	} else {
-		fmt.Println(i18n.T("status.warning_no_sign_verify"))
+		reporter.InfoString("status.verify_key", decryptVerifyKey)
 	}
-	fmt.Println(i18n.T("status.done"))
+	reporter.InfoString("file_info.original_filename", header.Filename)
+	reporter.InfoBool("status.streaming_mode", decryptStreaming)
 
-	// 确定缓冲区大小
-	var bufSize int
-	if decryptBufferSize > 0 {
-		bufSize = decryptBufferSize * 1024
-	} else {
-		stat, _ := os.Stat(decryptInput)
-		bufSize = crypto.OptimalBufferSize(stat.Size())
-	}
-
-	if verbose {
-		fmt.Printf(i18n.T("file_info.buffer_size")+"\n", bufSize/1024)
-	}
+	// 计算缓冲区大小
+	bufSize := getDecryptBufferSize()
+	reporter.Info("file_info.buffer_size", bufSize/1024)
 
 	// 执行解密
-	fmt.Printf("[2/3] %s ", i18n.T("progress.decrypting"))
-	var decryptFunc func() error
+	reporter.Step("progress.decrypting")
+	decryptFunc := getDecryptFunction(hybridPriv, dilithiumPub, bufSize)
+	if err := decryptFunc(); err != nil {
+		reporter.Failed()
+		return fmt.Errorf("decrypt failed: %w",
+			i18n.TranslateError("error.decrypt_failed", err))
+	}
+	reporter.Done()
+
+	// 验证步骤
+	reporter.Step("progress.verifying")
+	reporter.Done()
+
+	return nil
+}
+
+func getDecryptBufferSize() int {
+	if decryptBufferSize > 0 {
+		return decryptBufferSize * 1024
+	}
+	size, _ := utils.GetFileSize(decryptInput)
+	return crypto.OptimalBufferSize(size)
+}
+
+func getDecryptFunction(hybridPriv *crypto.HybridPrivateKey, dilithiumPub interface{}, bufSize int) func() error {
 	if decryptStreaming {
-		decryptFunc = func() error {
+		return func() error {
 			return crypto.DecryptFileStreaming(
 				decryptInput, decryptOutput,
 				hybridPriv.Kyber, hybridPriv.ECDH,
@@ -132,38 +184,30 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 				bufSize,
 			)
 		}
-	} else {
-		decryptFunc = func() error {
-			return crypto.DecryptFile(
-				decryptInput, decryptOutput,
-				hybridPriv.Kyber, hybridPriv.ECDH,
-				dilithiumPub,
-			)
-		}
 	}
-
-	if err := decryptFunc(); err != nil {
-		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.decrypt_failed", err)
+	return func() error {
+		return crypto.DecryptFile(
+			decryptInput, decryptOutput,
+			hybridPriv.Kyber, hybridPriv.ECDH,
+			dilithiumPub,
+		)
 	}
-	fmt.Println(i18n.T("status.done"))
+}
 
-	// 显示结果
-	fmt.Printf("[3/3] %s ", i18n.T("progress.verifying"))
-	fmt.Println(i18n.T("status.done"))
-
-	// 获取文件信息
+func showDecryptResult(header *format.FileHeader) error {
 	decryptedInfo, err := os.Stat(decryptOutput)
 	if err != nil {
 		fmt.Println("\n" + i18n.T("status.failed"))
-		return nil
+		return nil //nolint:nilerr
 	}
 
 	encryptedInfo, _ := os.Stat(decryptInput)
 
-	fmt.Printf("\n%s\n\n", i18n.T("status.success_decrypt"))
+	reporter := utils.NewProgressReporter(1, true)
+	reporter.Summary("status.success_decrypt")
+
 	summary := i18n.T("file_info.decrypt_summary")
-	fmt.Printf("%s\n",
+	fmt.Printf("%s\\n",
 		fmt.Sprintf(summary,
 			filepath.Base(decryptInput), encryptedInfo.Size(),
 			filepath.Base(decryptOutput), decryptedInfo.Size(),

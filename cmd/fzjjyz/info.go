@@ -1,3 +1,4 @@
+// Package main 提供文件加密解密命令行工具.
 package main
 
 import (
@@ -5,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"github.com/spf13/cobra"
@@ -23,38 +25,62 @@ func newInfoCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&infoInput, "input", "i", "", i18n.T("info.flags.input"))
-	cmd.MarkFlagRequired("input")
+	_ = cmd.MarkFlagRequired("input")
 
 	return cmd
 }
 
-func runInfo(cmd *cobra.Command, args []string) error {
-	// 验证输入文件
-	if _, err := os.Stat(infoInput); err != nil {
-		return fmt.Errorf(i18n.T("error.file_not_exists"), infoInput)
-	}
+func runInfo(_ *cobra.Command, _ []string) error {
+	return executeInfoCommand()
+}
 
-	// 读取文件
-	data, err := os.ReadFile(infoInput)
+func executeInfoCommand() error {
+	// 步骤1: 验证和读取
+	data, err := validateAndReadInfoFile()
 	if err != nil {
-		return fmt.Errorf(i18n.T("error.cannot_read_file"), err)
+		return err
 	}
 
-	// 解析文件头
+	// 步骤2: 解析和验证
+	header, err := parseAndValidateHeader(data)
+	if err != nil {
+		return err
+	}
+
+	// 步骤3: 显示信息
+	return showFileInfo(header, data)
+}
+
+func validateAndReadInfoFile() ([]byte, error) {
+	//nolint:wrapcheck
+	if err := utils.ValidateInputFile(infoInput); err != nil {
+		return nil, err
+	}
+
+	data, err := os.ReadFile(infoInput) // #nosec G304 - 已通过验证
+	if err != nil {
+		return nil, fmt.Errorf(i18n.T("error.cannot_read_file"), err)
+	}
+
+	return data, nil
+}
+
+func parseAndValidateHeader(data []byte) (*format.FileHeader, error) {
 	header, err := format.ParseFileHeaderFromBytes(data)
 	if err != nil {
-		return fmt.Errorf(i18n.T("error.parse_header_failed"), err)
+		return nil, fmt.Errorf(i18n.T("error.parse_header_failed"), err)
 	}
 
-	// 验证文件头
 	if err := header.Validate(); err != nil {
-		return fmt.Errorf(i18n.T("error.validate_header_failed"), err)
+		return nil, fmt.Errorf(i18n.T("error.validate_header_failed"), err)
 	}
 
-	// 获取文件信息
+	return header, nil
+}
+
+func showFileInfo(header *format.FileHeader, data []byte) error {
 	fileInfo, _ := os.Stat(infoInput)
 
-	// 显示信息
 	fmt.Printf(i18n.T("file_info.header")+"\n\n", filepath.Base(infoInput))
 
 	// 基本信息

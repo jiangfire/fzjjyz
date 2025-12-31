@@ -10,7 +10,7 @@ import (
 	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
-// TestSignData 测试数据签名
+// TestSignData 测试数据签名.
 func TestSignData(t *testing.T) {
 	_, priv, err := GenerateDilithiumKeys()
 	if err != nil {
@@ -30,7 +30,7 @@ func TestSignData(t *testing.T) {
 	}
 }
 
-// TestVerifySignature 测试签名验证
+// TestVerifySignature 测试签名验证.
 func TestVerifySignature(t *testing.T) {
 	pub, priv, err := GenerateDilithiumKeys()
 	if err != nil {
@@ -54,7 +54,7 @@ func TestVerifySignature(t *testing.T) {
 	}
 }
 
-// TestVerifyInvalidSignature 测试无效签名验证
+// TestVerifyInvalidSignature 测试无效签名验证.
 func TestVerifyInvalidSignature(t *testing.T) {
 	pub, priv, err := GenerateDilithiumKeys()
 	if err != nil {
@@ -83,7 +83,7 @@ func TestVerifyInvalidSignature(t *testing.T) {
 	}
 }
 
-// TestSignDifferentData 测试不同数据签名
+// TestSignDifferentData 测试不同数据签名.
 func TestSignDifferentData(t *testing.T) {
 	pub, priv, _ := GenerateDilithiumKeys()
 
@@ -112,7 +112,7 @@ func TestSignDifferentData(t *testing.T) {
 	}
 }
 
-// TestSignEmptyData 测试空数据签名
+// TestSignEmptyData 测试空数据签名.
 func TestSignEmptyData(t *testing.T) {
 	pub, priv, _ := GenerateDilithiumKeys()
 
@@ -132,12 +132,14 @@ func TestSignEmptyData(t *testing.T) {
 	}
 }
 
-// TestSignLargeData 测试大数据签名
+// TestSignLargeData 测试大数据签名.
 func TestSignLargeData(t *testing.T) {
 	pub, priv, _ := GenerateDilithiumKeys()
 
 	largeData := make([]byte, 1024*1024) // 1MB
-	rand.Read(largeData)
+	if _, err := rand.Read(largeData); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
 
 	signature, err := SignData(largeData, priv)
 	if err != nil {
@@ -154,13 +156,17 @@ func TestSignLargeData(t *testing.T) {
 	}
 }
 
-// TestSignFile 测试文件签名
+// TestSignFile 测试文件签名.
 func TestSignFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	pub, priv, _ := GenerateDilithiumKeys()
 
@@ -185,13 +191,17 @@ func TestSignFile(t *testing.T) {
 	}
 }
 
-// TestVerifyFileSignatureTampered 测试篡改文件验证
+// TestVerifyFileSignatureTampered 测试篡改文件验证.
 func TestVerifyFileSignatureTampered(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	pub, priv, _ := GenerateDilithiumKeys()
 
@@ -217,12 +227,14 @@ func TestVerifyFileSignatureTampered(t *testing.T) {
 	}
 }
 
-// TestSignHash 测试哈希签名
+// TestSignHash 测试哈希签名.
 func TestSignHash(t *testing.T) {
 	pub, priv, _ := GenerateDilithiumKeys()
 
 	hash := make([]byte, 32)
-	rand.Read(hash)
+	if _, err := rand.Read(hash); err != nil {
+		t.Fatalf("生成随机哈希失败: %v", err)
+	}
 
 	signature, err := SignHash(hash, priv)
 	if err != nil {
@@ -239,7 +251,7 @@ func TestSignHash(t *testing.T) {
 	}
 }
 
-// TestSignInvalidHash 测试无效哈希签名
+// TestSignInvalidHash 测试无效哈希签名.
 func TestSignInvalidHash(t *testing.T) {
 	_, priv, _ := GenerateDilithiumKeys()
 
@@ -250,7 +262,7 @@ func TestSignInvalidHash(t *testing.T) {
 	}
 }
 
-// TestKeySizes 测试密钥和签名大小
+// TestKeySizes 测试密钥和签名大小.
 func TestKeySizes(t *testing.T) {
 	pub, priv, err := GenerateDilithiumKeys()
 	if err != nil {
@@ -294,7 +306,7 @@ func TestKeySizes(t *testing.T) {
 	}
 }
 
-// TestSignDataWithInvalidKey 测试无效密钥签名
+// TestSignDataWithInvalidKey 测试无效密钥签名.
 func TestSignDataWithInvalidKey(t *testing.T) {
 	invalidKey := "not a dilithium key"
 	_, err := SignData([]byte("test"), invalidKey)
@@ -303,7 +315,7 @@ func TestSignDataWithInvalidKey(t *testing.T) {
 	}
 }
 
-// TestVerifyDataWithInvalidKey 测试无效密钥验证
+// TestVerifyDataWithInvalidKey 测试无效密钥验证.
 func TestVerifyDataWithInvalidKey(t *testing.T) {
 	_, priv, _ := GenerateDilithiumKeys()
 	data := []byte("test")
@@ -316,7 +328,7 @@ func TestVerifyDataWithInvalidKey(t *testing.T) {
 	}
 }
 
-// TestConcurrentSigning 测试并发签名
+// TestConcurrentSigning 测试并发签名.
 func TestConcurrentSigning(t *testing.T) {
 	_, priv, _ := GenerateDilithiumKeys()
 
@@ -347,7 +359,7 @@ func TestConcurrentSigning(t *testing.T) {
 	}
 }
 
-// TestBinaryDataSignature 测试二进制数据签名
+// TestBinaryDataSignature 测试二进制数据签名.
 func TestBinaryDataSignature(t *testing.T) {
 	pub, priv, _ := GenerateDilithiumKeys()
 

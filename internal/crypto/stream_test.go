@@ -10,7 +10,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 )
 
-// TestBufferPool 测试缓冲区池
+// TestBufferPool 测试缓冲区池.
 func TestBufferPool(t *testing.T) {
 	t.Run("基本功能", func(t *testing.T) {
 		pool := NewBufferPool(64 * 1024)
@@ -56,7 +56,7 @@ func TestBufferPool(t *testing.T) {
 	})
 }
 
-// TestHashUtils 测试流式哈希工具
+// TestHashUtils 测试流式哈希工具.
 func TestHashUtils(t *testing.T) {
 	t.Run("HashFile", func(t *testing.T) {
 		// 创建临时文件
@@ -94,7 +94,9 @@ func TestHashUtils(t *testing.T) {
 	t.Run("StreamingHash", func(t *testing.T) {
 		hasher := NewStreamingHash()
 		data := []byte("Test data")
-		hasher.Write(data)
+		if _, err := hasher.Write(data); err != nil {
+			t.Fatalf("Hasher Write failed: %v", err)
+		}
 		result := hasher.Sum()
 
 		if result == [32]byte{} {
@@ -103,7 +105,7 @@ func TestHashUtils(t *testing.T) {
 	})
 }
 
-// TestKeyGenParallel 测试并行密钥生成
+// TestKeyGenParallel 测试并行密钥生成.
 func TestKeyGenParallel(t *testing.T) {
 	t.Run("GenerateHybridKeysParallel", func(t *testing.T) {
 		kyberPub, kyberPriv, ecdhPub, ecdhPriv, err := GenerateHybridKeysParallel()
@@ -120,7 +122,7 @@ func TestKeyGenParallel(t *testing.T) {
 	})
 }
 
-// TestKeyCache 测试密钥缓存
+// TestKeyCache 测试密钥缓存.
 func TestKeyCache(t *testing.T) {
 	t.Run("缓存基本功能", func(t *testing.T) {
 		// 先清空缓存
@@ -168,6 +170,8 @@ func TestKeyCache(t *testing.T) {
 }
 
 // TestHeaderOptimized 测试优化的头部序列化
+//
+//nolint:funlen // 测试需要完整覆盖各种序列化场景
 func TestHeaderOptimized(t *testing.T) {
 	t.Run("MarshalBinaryOptimized", func(t *testing.T) {
 		// 创建测试头部
@@ -192,11 +196,21 @@ func TestHeaderOptimized(t *testing.T) {
 		}
 
 		// 填充随机数据
-		rand.Read(header.KyberEnc)
-		rand.Read(header.ECDHPub[:])
-		rand.Read(header.IV[:])
-		rand.Read(header.Signature)
-		rand.Read(header.SHA256Hash[:])
+		if _, err := rand.Read(header.KyberEnc); err != nil {
+			t.Fatalf("生成随机数据失败: %v", err)
+		}
+		if _, err := rand.Read(header.ECDHPub[:]); err != nil {
+			t.Fatalf("生成随机数据失败: %v", err)
+		}
+		if _, err := rand.Read(header.IV[:]); err != nil {
+			t.Fatalf("生成随机数据失败: %v", err)
+		}
+		if _, err := rand.Read(header.Signature); err != nil {
+			t.Fatalf("生成随机数据失败: %v", err)
+		}
+		if _, err := rand.Read(header.SHA256Hash[:]); err != nil {
+			t.Fatalf("生成随机数据失败: %v", err)
+		}
 
 		// 使用原方法
 		original, err := header.MarshalBinary()
@@ -254,6 +268,8 @@ func TestHeaderOptimized(t *testing.T) {
 }
 
 // TestStreamingEncryption 测试流式加密（完整流程）
+//
+//nolint:gocognit,funlen // 测试需要完整覆盖流式加密的复杂流程
 func TestStreamingEncryption(t *testing.T) {
 	// 跳过长耗时测试
 	if testing.Short() {
@@ -340,7 +356,9 @@ func TestStreamingEncryption(t *testing.T) {
 		decryptedFile := filepath.Join(tmpDir, "decrypted.txt")
 
 		testData := make([]byte, 100*1024) // 100KB
-		rand.Read(testData)
+		if _, err := rand.Read(testData); err != nil {
+			t.Fatalf("生成随机数据失败: %v", err)
+		}
 		if err := os.WriteFile(originalFile, testData, 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -368,7 +386,7 @@ func TestStreamingEncryption(t *testing.T) {
 	})
 }
 
-// TestStreamingUtils 测试流式工具
+// TestStreamingUtils 测试流式工具.
 func TestStreamingUtils(t *testing.T) {
 	t.Run("MultiWriter", func(t *testing.T) {
 		// 创建两个 buffer
@@ -378,7 +396,9 @@ func TestStreamingUtils(t *testing.T) {
 		// 使用 MultiWriter
 		mw := NewMultiWriter(buf1, buf2)
 		data := []byte("Hello")
-		mw.Write(data)
+		if _, err := mw.Write(data); err != nil {
+			t.Fatalf("MultiWriter Write failed: %v", err)
+		}
 
 		// 验证两个 buffer 都写入了数据
 		if buf1.String() != "Hello" || buf2.String() != "Hello" {

@@ -12,18 +12,19 @@ import (
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
 )
 
-// 密钥对结构（表达原则：数据结构优先）
+// HybridPublicKey 混合公钥结构（表达原则：数据结构优先）.
 type HybridPublicKey struct {
 	Kyber kem.PublicKey
 	ECDH  *ecdh.PublicKey
 }
 
+// HybridPrivateKey 混合私钥结构.
 type HybridPrivateKey struct {
 	Kyber kem.PrivateKey
 	ECDH  *ecdh.PrivateKey
 }
 
-// 生成Kyber密钥对
+// GenerateKyberKeys 生成Kyber密钥对.
 func GenerateKyberKeys() (kem.PublicKey, kem.PrivateKey, error) {
 	scheme := kyber768.Scheme()
 	pub, priv, err := scheme.GenerateKeyPair()
@@ -36,7 +37,7 @@ func GenerateKyberKeys() (kem.PublicKey, kem.PrivateKey, error) {
 	return pub, priv, nil
 }
 
-// 生成ECDH密钥对
+// GenerateECDHKeys 生成ECDH密钥对.
 func GenerateECDHKeys() (*ecdh.PublicKey, *ecdh.PrivateKey, error) {
 	priv, err := ecdh.X25519().GenerateKey(rand.Reader)
 	if err != nil {
@@ -48,7 +49,7 @@ func GenerateECDHKeys() (*ecdh.PublicKey, *ecdh.PrivateKey, error) {
 	return priv.PublicKey(), priv, nil
 }
 
-// 导出公钥到PEM格式
+// ExportPublicKey 导出公钥到PEM格式.
 func ExportPublicKey(kyberPub kem.PublicKey, ecdhPub *ecdh.PublicKey) ([]byte, error) {
 	// Kyber公钥
 	kyberBytes, err := kyberPub.MarshalBinary()
@@ -77,7 +78,7 @@ func ExportPublicKey(kyberPub kem.PublicKey, ecdhPub *ecdh.PublicKey) ([]byte, e
 	return combined, nil
 }
 
-// 导出私钥到PEM格式（注意权限设置）
+// ExportPrivateKey 导出私钥到PEM格式（注意权限设置）.
 func ExportPrivateKey(kyberPriv kem.PrivateKey, ecdhPriv *ecdh.PrivateKey) ([]byte, error) {
 	kyberBytes, err := kyberPriv.MarshalBinary()
 	if err != nil {
@@ -104,7 +105,7 @@ func ExportPrivateKey(kyberPriv kem.PrivateKey, ecdhPriv *ecdh.PrivateKey) ([]by
 	return combined, nil
 }
 
-// 从PEM导入密钥
+// ImportKeys 从PEM导入密钥.
 func ImportKeys(pubPEM, privPEM []byte) (*HybridPublicKey, *HybridPrivateKey, error) {
 	// 解析公钥
 	pubKyber, pubECDH, err := parsePublicKeys(pubPEM)
@@ -123,7 +124,7 @@ func ImportKeys(pubPEM, privPEM []byte) (*HybridPublicKey, *HybridPrivateKey, er
 		nil
 }
 
-// 辅助函数：解析公钥
+// 辅助函数：解析公钥.
 func parsePublicKeys(pemData []byte) (kem.PublicKey, *ecdh.PublicKey, error) {
 	var kyberKey kem.PublicKey
 	var ecdhKey *ecdh.PublicKey
@@ -172,7 +173,7 @@ func parsePublicKeys(pemData []byte) (kem.PublicKey, *ecdh.PublicKey, error) {
 	return kyberKey, ecdhKey, nil
 }
 
-// 辅助函数：解析私钥
+// 辅助函数：解析私钥.
 func parsePrivateKeys(pemData []byte) (kem.PrivateKey, *ecdh.PrivateKey, error) {
 	var kyberKey kem.PrivateKey
 	var ecdhKey *ecdh.PrivateKey
@@ -223,6 +224,8 @@ func parsePrivateKeys(pemData []byte) (kem.PrivateKey, *ecdh.PrivateKey, error) 
 
 // GenerateKeyPairParallel 并行生成所有密钥对（Kyber + ECDH + Dilithium）
 // 使用 goroutine 并行执行，速度提升 40-60%
+//
+//nolint:funlen // 并行密钥生成需要完整的错误处理和同步逻辑
 func GenerateKeyPairParallel() (
 	kyberPub kem.PublicKey,
 	kyberPriv kem.PrivateKey,
@@ -300,7 +303,7 @@ func GenerateKeyPairParallel() (
 }
 
 // GenerateHybridKeysParallel 并行生成 Kyber + ECDH 密钥对
-// 专门用于混合加密，不包含 Dilithium
+// 专门用于混合加密，不包含 Dilithium.
 func GenerateHybridKeysParallel() (
 	kyberPub kem.PublicKey,
 	kyberPriv kem.PrivateKey,

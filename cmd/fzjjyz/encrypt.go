@@ -1,3 +1,4 @@
+// Package main 提供文件加密解密命令行工具.
 package main
 
 import (
@@ -5,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"github.com/spf13/cobra"
@@ -36,74 +38,120 @@ func newEncryptCmd() *cobra.Command {
 	cmd.Flags().IntVar(&encryptBufferSize, "buffer-size", 0, i18n.T("encrypt.flags.buffer-size"))
 	cmd.Flags().BoolVar(&encryptStreaming, "streaming", true, i18n.T("encrypt.flags.streaming"))
 
-	cmd.MarkFlagRequired("input")
-	cmd.MarkFlagRequired("public-key")
-	cmd.MarkFlagRequired("sign-key")
+	_ = cmd.MarkFlagRequired("input")
+	_ = cmd.MarkFlagRequired("public-key")
+	_ = cmd.MarkFlagRequired("sign-key")
 
 	return cmd
 }
 
-func runEncrypt(cmd *cobra.Command, args []string) error {
-	// 验证输入文件
-	if _, err := os.Stat(encryptInput); err != nil {
-		return fmt.Errorf(i18n.T("error.input_file_not_exists"), encryptInput)
+func runEncrypt(_ *cobra.Command, _ []string) error {
+	return executeEncryptCommand()
+}
+
+func executeEncryptCommand() error {
+	// 步骤1: 验证输入
+	//nolint:wrapcheck
+	if err := utils.ValidateInputFile(encryptInput); err != nil {
+		return err
+	}
+	//nolint:wrapcheck
+	if err := utils.CheckOutputConflict(encryptOutput, encryptForce); err != nil {
+		return err
 	}
 
-	// 设置默认输出路径
+	// 步骤2: 准备输出路径
+	prepareEncryptOutput()
+
+	// 步骤3: 加载密钥
+	reporter := utils.NewProgressReporter(3, verbose)
+	hybridPub, dilithiumPriv, err := loadEncryptKeys(reporter)
+	if err != nil {
+		return err
+	}
+
+	// 步骤4: 执行加密
+	if err := executeEncrypt(reporter, hybridPub, dilithiumPriv); err != nil {
+		return err
+	}
+
+	// 步骤5: 显示结果
+	return showEncryptResult()
+}
+
+func prepareEncryptOutput() {
 	if encryptOutput == "" {
 		encryptOutput = encryptInput + ".fzj"
 	}
+}
 
-	// 检查输出文件是否已存在
-	if !encryptForce {
-		if _, err := os.Stat(encryptOutput); err == nil {
-			return fmt.Errorf(i18n.T("error.output_file_exists"), encryptOutput)
-		}
-	}
+func loadEncryptKeys(reporter *utils.ProgressReporter) (*crypto.HybridPublicKey, interface{}, error) {
+	reporter.Step("progress.loading_keys")
 
-	// 显示进度
-	fmt.Printf(i18n.T("status.encrypting_file")+"\n", filepath.Base(encryptInput))
-	if verbose {
-		fmt.Printf(i18n.T("file_info.original_file")+"\n", encryptInput)
-		fmt.Printf(i18n.T("file_info.encrypted_file")+"\n", encryptOutput)
-		fmt.Printf("  %s: %s\n", i18n.T("status.public_key"), encryptPubKey)
-		fmt.Printf("  %s: %s\n", i18n.T("status.sign_key"), encryptSignKey)
-		fmt.Printf("  %s: %v\n", i18n.T("status.streaming_mode"), encryptStreaming)
-	}
-
-	// 加载密钥（使用缓存）
-	fmt.Printf("\n[1/3] %s ", i18n.T("progress.loading_keys"))
-	hybridPub, err := crypto.LoadPublicKeyCached(encryptPubKey)
+	// 加载公钥
+	hybridPub, err := utils.LoadHybridPublicKey(encryptPubKey)
 	if err != nil {
-		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.load_public_key_failed", err, encryptPubKey)
+		reporter.Failed()
+		//nolint:wrapcheck
+		return nil, nil, err
 	}
 
-	dilithiumPriv, err := crypto.LoadDilithiumPrivateKeyCached(encryptSignKey)
+	// 加载签名私钥
+	dilithiumPriv, err := utils.LoadDilithiumPrivateKey(encryptSignKey)
 	if err != nil {
-		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.load_sign_key_failed", err, encryptSignKey)
-	}
-	fmt.Println(i18n.T("status.done"))
-
-	// 确定缓冲区大小
-	var bufSize int
-	if encryptBufferSize > 0 {
-		bufSize = encryptBufferSize * 1024
-	} else {
-		stat, _ := os.Stat(encryptInput)
-		bufSize = crypto.OptimalBufferSize(stat.Size())
+		reporter.Failed()
+		//nolint:wrapcheck
+		return nil, nil, err
 	}
 
-	if verbose {
-		fmt.Printf(i18n.T("file_info.buffer_size")+"\n", bufSize/1024)
-	}
+	reporter.Done()
+	return hybridPub, dilithiumPriv, nil
+}
+
+func executeEncrypt(
+	reporter *utils.ProgressReporter,
+	hybridPub *crypto.HybridPublicKey,
+	dilithiumPriv interface{},
+) error {
+	// 显示详细信息
+	reporter.InfoString("file_info.original_file", encryptInput)
+	reporter.InfoString("file_info.encrypted_file", encryptOutput)
+	reporter.InfoString("status.public_key", encryptPubKey)
+	reporter.InfoString("status.sign_key", encryptSignKey)
+	reporter.InfoBool("status.streaming_mode", encryptStreaming)
+
+	// 计算缓冲区大小
+	bufSize := getEncryptBufferSize()
+	reporter.Info("file_info.buffer_size", bufSize/1024)
 
 	// 执行加密
-	fmt.Printf("[2/3] %s ", i18n.T("progress.encrypting"))
-	var encryptFunc func() error
+	reporter.Step("progress.encrypting")
+	encryptFunc := getEncryptFunction(hybridPub, dilithiumPriv, bufSize)
+	if err := encryptFunc(); err != nil {
+		reporter.Failed()
+		return fmt.Errorf("encrypt failed: %w",
+			i18n.TranslateError("error.encrypt_failed", err))
+	}
+	reporter.Done()
+
+	// 验证步骤
+	reporter.Step("progress.verifying")
+	reporter.Done()
+
+	return nil
+}
+
+func getEncryptBufferSize() int {
+	if encryptBufferSize > 0 {
+		return encryptBufferSize * 1024
+	}
+	size, _ := utils.GetFileSize(encryptInput)
+	return crypto.OptimalBufferSize(size)
+}
+
+func getEncryptFunction(hybridPub *crypto.HybridPublicKey, dilithiumPriv interface{}, bufSize int) func() error {
 	if encryptStreaming {
-		encryptFunc = func() error {
+		return func() error {
 			return crypto.EncryptFileStreaming(
 				encryptInput, encryptOutput,
 				hybridPub.Kyber, hybridPub.ECDH,
@@ -111,31 +159,25 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 				bufSize,
 			)
 		}
-	} else {
-		encryptFunc = func() error {
-			return crypto.EncryptFile(
-				encryptInput, encryptOutput,
-				hybridPub.Kyber, hybridPub.ECDH,
-				dilithiumPriv,
-			)
-		}
 	}
-
-	if err := encryptFunc(); err != nil {
-		fmt.Println(i18n.T("status.failed"))
-		return i18n.TranslateError("error.encrypt_failed", err)
+	return func() error {
+		return crypto.EncryptFile(
+			encryptInput, encryptOutput,
+			hybridPub.Kyber, hybridPub.ECDH,
+			dilithiumPriv,
+		)
 	}
-	fmt.Println(i18n.T("status.done"))
+}
 
-	// 显示结果
-	fmt.Printf("[3/3] %s ", i18n.T("progress.verifying"))
+func showEncryptResult() error {
 	encryptedInfo, _ := os.Stat(encryptOutput)
 	originalInfo, _ := os.Stat(encryptInput)
-	fmt.Println(i18n.T("status.done"))
 
-	fmt.Printf("\n%s\n\n", i18n.T("status.success_encrypt"))
+	reporter := utils.NewProgressReporter(1, true)
+	reporter.Summary("status.success_encrypt")
+
 	summary := i18n.T("file_info.encrypt_summary")
-	fmt.Printf("%s\n",
+	fmt.Printf("%s\\n",
 		fmt.Sprintf(summary,
 			filepath.Base(encryptInput), originalInfo.Size(),
 			filepath.Base(encryptOutput), encryptedInfo.Size(),

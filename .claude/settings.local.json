@@ -69,7 +69,17 @@
       "Bash(golangci-lint run:*)",
       "Bash(go vet:*)",
       "Bash(go fmt:*)",
-      "Bash(golangci-lint:*)"
+      "Bash(golangci-lint:*)",
+      "Bash(Select-String:*)",
+      "Bash(Select-Object -First 30:*)",
+      "Bash(pwsh -Command:*)",
+      "Bash(findstr:*)",
+      "Bash(Select-Object -First 3:*)",
+      "Bash(python3:*)",
+      "Bash(tee:*)",
+      "Bash(git stash:*)",
+      "Bash(git stash pop:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

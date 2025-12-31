@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
-	"github.com/cloudflare/circl/kem"
 )
 
 // TestEncryptFile 测试完整文件加密流程.
@@ -25,12 +24,9 @@ func TestEncryptFile(t *testing.T) {
 	}()
 
 	// 生成密钥对
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建测试文件
 	originalFile := filepath.Join(tmpDir, "test.txt")
@@ -81,12 +77,9 @@ func TestEncryptEmptyFile(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建空文件
 	emptyFile := filepath.Join(tmpDir, "empty.txt")
@@ -128,12 +121,9 @@ func TestEncryptLargeFile(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建 100KB 测试数据
 	largeData := make([]byte, 100*1024)
@@ -169,6 +159,7 @@ func TestEncryptLargeFile(t *testing.T) {
 }
 
 // TestEncryptedFileFormat 测试加密文件格式.
+//
 //nolint:funlen // 测试函数需要完整验证所有文件头字段
 func TestEncryptedFileFormat(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
@@ -181,11 +172,9 @@ func TestEncryptedFileFormat(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, _, _ := GenerateKyberKeys()
+	kyberPub, _, _ := GenerateKyberKeys()
 	ecdhPub, _, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
 
 	// 创建测试文件
 	testFile := filepath.Join(tmpDir, "test.txt")
@@ -253,12 +242,9 @@ func TestTamperedEncryptedFile(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建并加密文件
 	testFile := filepath.Join(tmpDir, "test.txt")
@@ -319,8 +305,6 @@ func TestInvalidKeyDecrypt(t *testing.T) {
 	_, kyberPriv2, _ := GenerateKyberKeys()
 	_, ecdhPriv2, _ := GenerateECDHKeys()
 
-	kyberPub1Typed := kyberPub1.(kem.PublicKey)
-
 	// 创建并加密文件
 	testFile := filepath.Join(tmpDir, "test.txt")
 	if err := os.WriteFile(testFile, []byte("Secret data"), 0644); err != nil {
@@ -328,7 +312,7 @@ func TestInvalidKeyDecrypt(t *testing.T) {
 	}
 
 	encryptedFile := filepath.Join(tmpDir, "test.txt.enc")
-	err = EncryptFile(testFile, encryptedFile, kyberPub1Typed, ecdhPub1, dilithiumPriv1)
+	err = EncryptFile(testFile, encryptedFile, kyberPub1, ecdhPub1, dilithiumPriv1)
 	if err != nil {
 		t.Fatalf("加密失败: %v", err)
 	}
@@ -353,12 +337,9 @@ func TestBinaryFile(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建二进制数据（包含所有可能的字节值）
 	binaryData := make([]byte, 256)
@@ -405,12 +386,9 @@ func TestFileWithSpecialChars(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 使用特殊字符文件名
 	specialFile := filepath.Join(tmpDir, "test-file_v1.2.txt")
@@ -453,12 +431,9 @@ func TestConcurrentEncrypt(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建多个测试文件
 	numFiles := 5
@@ -511,11 +486,9 @@ func TestEncryptFileMetadata(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, _, _ := GenerateKyberKeys()
+	kyberPub, _, _ := GenerateKyberKeys()
 	ecdhPub, _, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
 
 	// 创建测试文件
 	testFile := filepath.Join(tmpDir, "metadata.txt")

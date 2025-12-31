@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+//nolint:funlen
 func TestFileHeaderSerialization(t *testing.T) {
 	header := &FileHeader{
 		Magic:       [4]byte{'F', 'Z', 'J', 0x01},
@@ -29,11 +30,21 @@ func TestFileHeaderSerialization(t *testing.T) {
 	}
 
 	// 填充测试数据
-	rand.Read(header.KyberEnc)
-	rand.Read(header.ECDHPub[:])
-	rand.Read(header.IV[:])
-	rand.Read(header.Signature)
-	rand.Read(header.SHA256Hash[:])
+	if _, err := rand.Read(header.KyberEnc); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.ECDHPub[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.IV[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.Signature); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.SHA256Hash[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
 
 	// 序列化
 	data, err := header.MarshalBinary()
@@ -126,11 +137,21 @@ func TestNewFileHeader(t *testing.T) {
 	hash := [32]byte{}
 
 	// 填充随机数据
-	rand.Read(kyberEnc)
-	rand.Read(ecdhPub[:])
-	rand.Read(iv[:])
-	rand.Read(signature)
-	rand.Read(hash[:])
+	if _, err := rand.Read(kyberEnc); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(ecdhPub[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(iv[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(signature); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(hash[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
 
 	header := NewFileHeader(filename, fileSize, kyberEnc, ecdhPub, iv, signature, hash)
 
@@ -204,7 +225,7 @@ func TestHeaderWithEmptyFields(t *testing.T) {
 	if parsed.KyberEncLen != 0 {
 		t.Error("KyberEncLen should be 0")
 	}
-	if parsed.KyberEnc != nil && len(parsed.KyberEnc) > 0 {
+	if len(parsed.KyberEnc) > 0 {
 		t.Error("KyberEnc should be empty")
 	}
 }
@@ -240,7 +261,7 @@ func TestHeaderSizeEstimation(t *testing.T) {
 	}
 }
 
-// TestValidateInvalidECDHLength 测试无效ECDH长度
+// TestValidateInvalidECDHLength 测试无效ECDH长度.
 func TestValidateInvalidECDHLength(t *testing.T) {
 	header := &FileHeader{
 		Magic:       [4]byte{'F', 'Z', 'J', 0x01},
@@ -265,7 +286,7 @@ func TestValidateInvalidECDHLength(t *testing.T) {
 	}
 }
 
-// TestValidateInvalidIVLength 测试无效IV长度
+// TestValidateInvalidIVLength 测试无效IV长度.
 func TestValidateInvalidIVLength(t *testing.T) {
 	header := &FileHeader{
 		Magic:       [4]byte{'F', 'Z', 'J', 0x01},
@@ -290,7 +311,7 @@ func TestValidateInvalidIVLength(t *testing.T) {
 	}
 }
 
-// TestUnmarshalBinaryInvalidData 测试反序列化无效数据
+// TestUnmarshalBinaryInvalidData 测试反序列化无效数据.
 func TestUnmarshalBinaryInvalidData(t *testing.T) {
 	tests := []struct {
 		name string
@@ -312,7 +333,7 @@ func TestUnmarshalBinaryInvalidData(t *testing.T) {
 	}
 }
 
-// TestMarshalBinaryOptimizedConsistency 测试优化序列化一致性
+// TestMarshalBinaryOptimizedConsistency 测试优化序列化一致性.
 func TestMarshalBinaryOptimizedConsistency(t *testing.T) {
 	// 测试不同大小的数据
 	testCases := []struct {
@@ -335,16 +356,19 @@ func TestMarshalBinaryOptimizedConsistency(t *testing.T) {
 				FilenameLen: byte(len(tc.filename)),
 				Filename:    tc.filename,
 				FileSize:    1024,
-				Timestamp:   uint32(time.Now().Unix()),
+				// #nosec G115 - 测试数据，不会溢出
+				Timestamp: uint32(time.Now().Unix()),
+				// #nosec G115 - 测试数据，不会溢出
 				KyberEncLen: uint16(tc.kyberLen),
 				KyberEnc:    make([]byte, tc.kyberLen),
 				ECDHLen:     32,
 				ECDHPub:     [32]byte{},
 				IVLen:       12,
 				IV:          [12]byte{},
-				SigLen:      uint16(tc.sigLen),
-				Signature:   make([]byte, tc.sigLen),
-				SHA256Hash:  [32]byte{},
+				// #nosec G115 - 测试数据，不会溢出
+				SigLen:     uint16(tc.sigLen),
+				Signature:  make([]byte, tc.sigLen),
+				SHA256Hash: [32]byte{},
 			}
 
 			standard, _ := header.MarshalBinary()
@@ -357,11 +381,11 @@ func TestMarshalBinaryOptimizedConsistency(t *testing.T) {
 	}
 }
 
-// TestGetHeaderSizeConsistency 测试头部大小计算一致性
+// TestGetHeaderSizeConsistency 测试头部大小计算一致性.
 func TestGetHeaderSizeConsistency(t *testing.T) {
 	testCases := []struct {
-		name     string
-		header   *FileHeader
+		name   string
+		header *FileHeader
 	}{
 		{
 			"empty",
@@ -419,10 +443,10 @@ func TestGetHeaderSizeConsistency(t *testing.T) {
 	}
 }
 
-// TestUnixTimeEdgeCases 测试UnixTime边界情况
+// TestUnixTimeEdgeCases 测试UnixTime边界情况.
 func TestUnixTimeEdgeCases(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		timestamp uint32
 	}{
 		{"zero", 0},
@@ -441,7 +465,7 @@ func TestUnixTimeEdgeCases(t *testing.T) {
 	}
 }
 
-// TestValidateSignatureLengthMismatch 测试签名长度不匹配
+// TestValidateSignatureLengthMismatch 测试签名长度不匹配.
 func TestValidateSignatureLengthMismatch(t *testing.T) {
 	header := &FileHeader{
 		Magic:       [4]byte{'F', 'Z', 'J', 0x01},
@@ -466,7 +490,7 @@ func TestValidateSignatureLengthMismatch(t *testing.T) {
 	}
 }
 
-// TestValidateKyberEncLengthMismatch 测试Kyber封装长度不匹配
+// TestValidateKyberEncLengthMismatch 测试Kyber封装长度不匹配.
 func TestValidateKyberEncLengthMismatch(t *testing.T) {
 	header := &FileHeader{
 		Magic:       [4]byte{'F', 'Z', 'J', 0x01},
@@ -491,7 +515,7 @@ func TestValidateKyberEncLengthMismatch(t *testing.T) {
 	}
 }
 
-// TestUnmarshalBinaryReadErrors 测试反序列化读取错误
+// TestUnmarshalBinaryReadErrors 测试反序列化读取错误.
 func TestUnmarshalBinaryReadErrors(t *testing.T) {
 	// 创建不完整的头部数据
 	incompleteData := make([]byte, 15) // 小于最小要求
@@ -503,7 +527,7 @@ func TestUnmarshalBinaryReadErrors(t *testing.T) {
 	}
 }
 
-// TestMarshalBinaryWithRealData 测试使用真实数据的序列化
+// TestMarshalBinaryWithRealData 测试使用真实数据的序列化.
 func TestMarshalBinaryWithRealData(t *testing.T) {
 	// 使用真实大小的数据
 	filename := "large_file.bin"
@@ -514,6 +538,7 @@ func TestMarshalBinaryWithRealData(t *testing.T) {
 		Flags:       0x00,
 		FilenameLen: byte(len(filename)),
 		FileSize:    10485760,
+		// #nosec G115 - 测试数据，不会溢出
 		Timestamp:   uint32(time.Now().Unix()),
 		KyberEncLen: 1088,
 		ECDHLen:     32,
@@ -522,10 +547,16 @@ func TestMarshalBinaryWithRealData(t *testing.T) {
 	}
 	header.Filename = filename
 	header.KyberEnc = make([]byte, 1088)
-	header.ECDHPub = [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
+	header.ECDHPub = [32]byte{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+	}
 	header.IV = [12]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 	header.Signature = make([]byte, 2700)
-	header.SHA256Hash = [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32}
+	header.SHA256Hash = [32]byte{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+	}
 
 	// 标准序列化
 	data1, err1 := header.MarshalBinary()
@@ -558,4 +589,3 @@ func TestMarshalBinaryWithRealData(t *testing.T) {
 		t.Errorf("文件大小不匹配: %d vs %d", decoded.FileSize, header.FileSize)
 	}
 }
-

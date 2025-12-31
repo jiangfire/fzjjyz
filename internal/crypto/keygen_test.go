@@ -169,7 +169,9 @@ func TestKeyFileCorruption(t *testing.T) {
 	// 测试损坏的密钥文件
 	tempDir := t.TempDir()
 	corruptPath := filepath.Join(tempDir, "corrupt.pem")
-	os.WriteFile(corruptPath, []byte("not a valid pem"), 0600)
+	if err := os.WriteFile(corruptPath, []byte("not a valid pem"), 0600); err != nil {
+		t.Fatalf("创建损坏密钥文件失败: %v", err)
+	}
 
 	_, _, err := LoadKeyFiles(corruptPath, corruptPath)
 	if err == nil {

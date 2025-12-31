@@ -1,3 +1,5 @@
+// Package format provides file header serialization and deserialization
+// for the fzjjyz encrypted file format.
 package format
 
 import (
@@ -9,7 +11,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 )
 
-// FileHeader 文件头结构（表达原则：数据结构优先）
+// FileHeader 文件头结构（表达原则：数据结构优先）.
 type FileHeader struct {
 	Magic       [4]byte  // "FZJ\x01"
 	Version     uint16   // 0x0100
@@ -30,50 +32,86 @@ type FileHeader struct {
 	SHA256Hash  [32]byte // 文件内容校验和
 }
 
-// MarshalBinary 序列化为二进制（压缩格式）
+// MarshalBinary 序列化为二进制（压缩格式）.
+//
+//nolint:funlen
 func (h *FileHeader) MarshalBinary() ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// 固定字段 (10字节)
-	buf.Write(h.Magic[:])                          // 4字节
-	binary.Write(buf, binary.BigEndian, h.Version) // 2字节
-	buf.WriteByte(h.Algorithm)                     // 1字节
-	buf.WriteByte(h.Flags)                         // 1字节
-	buf.WriteByte(h.FilenameLen)                   // 1字节
+	if _, err := buf.Write(h.Magic[:]); err != nil { // 4字节
+		return nil, fmt.Errorf("write magic failed: %w", err)
+	}
+	if err := binary.Write(buf, binary.BigEndian, h.Version); err != nil { // 2字节
+		return nil, fmt.Errorf("write version failed: %w", err)
+	}
+	if err := buf.WriteByte(h.Algorithm); err != nil { // 1字节
+		return nil, fmt.Errorf("write algorithm failed: %w", err)
+	}
+	if err := buf.WriteByte(h.Flags); err != nil { // 1字节
+		return nil, fmt.Errorf("write flags failed: %w", err)
+	}
+	if err := buf.WriteByte(h.FilenameLen); err != nil { // 1字节
+		return nil, fmt.Errorf("write filename length failed: %w", err)
+	}
 
 	// 可变长度字段
 	if h.FilenameLen > 0 {
-		buf.WriteString(h.Filename) // N字节
+		if _, err := buf.WriteString(h.Filename); err != nil { // N字节
+			return nil, fmt.Errorf("write filename failed: %w", err)
+		}
 	}
-	binary.Write(buf, binary.BigEndian, h.FileSize)  // 8字节
-	binary.Write(buf, binary.BigEndian, h.Timestamp) // 4字节
+	if err := binary.Write(buf, binary.BigEndian, h.FileSize); err != nil { // 8字节
+		return nil, fmt.Errorf("write file size failed: %w", err)
+	}
+	if err := binary.Write(buf, binary.BigEndian, h.Timestamp); err != nil { // 4字节
+		return nil, fmt.Errorf("write timestamp failed: %w", err)
+	}
 
 	// 密钥相关
-	binary.Write(buf, binary.BigEndian, h.KyberEncLen) // 2字节
+	if err := binary.Write(buf, binary.BigEndian, h.KyberEncLen); err != nil { // 2字节
+		return nil, fmt.Errorf("write Kyber length failed: %w", err)
+	}
 	if h.KyberEncLen > 0 {
-		buf.Write(h.KyberEnc) // M字节
+		if _, err := buf.Write(h.KyberEnc); err != nil { // M字节
+			return nil, fmt.Errorf("write Kyber encapsulation failed: %w", err)
+		}
 	}
-	buf.WriteByte(h.ECDHLen) // 1字节
+	if err := buf.WriteByte(h.ECDHLen); err != nil { // 1字节
+		return nil, fmt.Errorf("write ECDH length failed: %w", err)
+	}
 	if h.ECDHLen > 0 {
-		buf.Write(h.ECDHPub[:]) // 32字节
+		if _, err := buf.Write(h.ECDHPub[:]); err != nil { // 32字节
+			return nil, fmt.Errorf("write ECDH public key failed: %w", err)
+		}
 	}
-	buf.WriteByte(h.IVLen) // 1字节
+	if err := buf.WriteByte(h.IVLen); err != nil { // 1字节
+		return nil, fmt.Errorf("write IV length failed: %w", err)
+	}
 	if h.IVLen > 0 {
-		buf.Write(h.IV[:]) // 12字节
+		if _, err := buf.Write(h.IV[:]); err != nil { // 12字节
+			return nil, fmt.Errorf("write IV failed: %w", err)
+		}
 	}
 
 	// 签名和校验
-	binary.Write(buf, binary.BigEndian, h.SigLen) // 2字节
-	if h.SigLen > 0 {
-		buf.Write(h.Signature) // S字节
+	if err := binary.Write(buf, binary.BigEndian, h.SigLen); err != nil { // 2字节
+		return nil, fmt.Errorf("write signature length failed: %w", err)
 	}
-	buf.Write(h.SHA256Hash[:]) // 32字节
+	if h.SigLen > 0 {
+		if _, err := buf.Write(h.Signature); err != nil { // S字节
+			return nil, fmt.Errorf("write signature failed: %w", err)
+		}
+	}
+	if _, err := buf.Write(h.SHA256Hash[:]); err != nil { // 32字节
+		return nil, fmt.Errorf("write hash failed: %w", err)
+	}
 
 	return buf.Bytes(), nil
 }
 
 // MarshalBinaryOptimized 优化后的序列化（减少内存分配）
-// 使用预分配和 binary.Append 系列函数，减少 70% 内存分配
+// 使用预分配和 binary.Append 系列函数，减少 70% 内存分配.
 func (h *FileHeader) MarshalBinaryOptimized() ([]byte, error) {
 	// 预计算总大小
 	totalSize := h.GetHeaderSize()
@@ -123,7 +161,9 @@ func (h *FileHeader) MarshalBinaryOptimized() ([]byte, error) {
 	return data, nil
 }
 
-// UnmarshalBinary 从二进制反序列化
+// UnmarshalBinary 从二进制反序列化.
+//
+//nolint:funlen
 func (h *FileHeader) UnmarshalBinary(data []byte) error {
 	if len(data) < 10 {
 		return utils.NewCryptoError(
@@ -219,18 +259,26 @@ func (h *FileHeader) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// IsValidMagic 验证Magic Number
+// IsValidMagic 验证Magic Number.
 func IsValidMagic(magic []byte) bool {
 	return len(magic) >= 4 && magic[0] == 'F' && magic[1] == 'Z' && magic[2] == 'J' && magic[3] == 0x01
 }
 
-// IsVersionSupported 验证版本兼容性
+// IsVersionSupported 验证版本兼容性.
 func IsVersionSupported(version uint16) bool {
 	return version == 0x0100 // 当前只支持0x0100
 }
 
-// NewFileHeader 创建新文件头（工厂函数）
-func NewFileHeader(filename string, fileSize uint64, kyberEnc []byte, ecdhPub [32]byte, iv [12]byte, signature []byte, hash [32]byte) *FileHeader {
+// NewFileHeader 创建新文件头（工厂函数）.
+func NewFileHeader(
+	filename string,
+	fileSize uint64,
+	kyberEnc []byte,
+	ecdhPub [32]byte,
+	iv [12]byte,
+	signature []byte,
+	hash [32]byte,
+) *FileHeader {
 	return &FileHeader{
 		Magic:       [4]byte{'F', 'Z', 'J', 0x01},
 		Version:     0x0100,
@@ -239,20 +287,23 @@ func NewFileHeader(filename string, fileSize uint64, kyberEnc []byte, ecdhPub [3
 		FilenameLen: byte(len(filename)),
 		Filename:    filename,
 		FileSize:    fileSize,
-		Timestamp:   uint32(time.Now().Unix()),
+		// #nosec G115 - 时间戳在合理范围内，不会溢出
+		Timestamp: uint32(time.Now().Unix()),
+		// #nosec G115 - Kyber密文长度固定，不会溢出
 		KyberEncLen: uint16(len(kyberEnc)),
 		KyberEnc:    kyberEnc,
 		ECDHLen:     32,
 		ECDHPub:     ecdhPub,
 		IVLen:       12,
 		IV:          iv,
-		SigLen:      uint16(len(signature)),
-		Signature:   signature,
-		SHA256Hash:  hash,
+		// #nosec G115 - 签名长度固定，不会溢出
+		SigLen:     uint16(len(signature)),
+		Signature:  signature,
+		SHA256Hash: hash,
 	}
 }
 
-// GetHeaderSize 计算头部序列化后的大小（用于预分配缓冲区）
+// GetHeaderSize 计算头部序列化后的大小（用于预分配缓冲区）.
 func (h *FileHeader) GetHeaderSize() int {
 	size := 9 // 固定字段: Magic(4) + Version(2) + Algorithm(1) + Flags(1) + FilenameLen(1)
 	size += int(h.FilenameLen)
@@ -260,9 +311,9 @@ func (h *FileHeader) GetHeaderSize() int {
 	size += 4 // Timestamp
 	size += 2 // KyberEncLen
 	size += int(h.KyberEncLen)
-	size += 1 // ECDHLen
+	size++ // ECDHLen
 	size += int(h.ECDHLen)
-	size += 1 // IVLen
+	size++ // IVLen
 	size += int(h.IVLen)
 	size += 2 // SigLen
 	size += int(h.SigLen)
@@ -270,7 +321,7 @@ func (h *FileHeader) GetHeaderSize() int {
 	return size
 }
 
-// Validate 验证文件头字段的有效性
+// Validate 验证文件头字段的有效性.
 func (h *FileHeader) Validate() error {
 	// 验证Magic
 	if !IsValidMagic(h.Magic[:]) {
@@ -304,6 +355,7 @@ func (h *FileHeader) Validate() error {
 		)
 	}
 
+	// #nosec G115 - 长度验证，不会溢出
 	if h.KyberEncLen != uint16(len(h.KyberEnc)) {
 		return utils.NewCryptoError(
 			utils.ErrInvalidFormat,
@@ -325,6 +377,7 @@ func (h *FileHeader) Validate() error {
 		)
 	}
 
+	// #nosec G115 - 长度验证，不会溢出
 	if h.SigLen != uint16(len(h.Signature)) {
 		return utils.NewCryptoError(
 			utils.ErrInvalidFormat,
@@ -335,7 +388,7 @@ func (h *FileHeader) Validate() error {
 	return nil
 }
 
-// UnixTime 将 uint32 时间戳转换为可读字符串
+// UnixTime 将 uint32 时间戳转换为可读字符串.
 func UnixTime(timestamp uint32) string {
 	return time.Unix(int64(timestamp), 0).Format("2006-01-02 15:04:05")
 }

@@ -73,7 +73,7 @@ func DecryptFileStreaming(
 }
 
 // EncryptFileStreamingAuto 自动选择缓冲区大小的流式加密
-// 这是推荐的使用方式，自动根据文件大小选择最优缓冲区
+// 这是推荐的使用方式，自动根据文件大小选择最优缓冲区.
 func EncryptFileStreamingAuto(
 	inputPath, outputPath string,
 	kyberPub kem.PublicKey,
@@ -94,7 +94,7 @@ func EncryptFileStreamingAuto(
 }
 
 // DecryptFileStreamingAuto 自动选择缓冲区大小的流式解密
-// 这是推荐的使用方式，自动根据文件大小选择最优缓冲区
+// 这是推荐的使用方式，自动根据文件大小选择最优缓冲区.
 func DecryptFileStreamingAuto(
 	inputPath, outputPath string,
 	kyberPriv kem.PrivateKey,

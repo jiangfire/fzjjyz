@@ -1,3 +1,4 @@
+// Package main 提供文件加密解密命令行工具.
 package main
 
 import (
@@ -12,7 +13,7 @@ func newVersionCmd() *cobra.Command {
 		Use:   "version",
 		Short: i18n.T("version.short"),
 		Long:  i18n.T("version.long"),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			fmt.Printf("%s - %s\n", i18n.T("app.name"), i18n.T("app.description"))
 			fmt.Printf("%s %s\n", i18n.T("version.label"), Version)
 			fmt.Printf("%s %s\n", i18n.T("version.app_name"), AppName)

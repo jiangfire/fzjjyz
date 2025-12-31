@@ -1,24 +1,31 @@
-// 遵循清晰原则：简单明了的错误定义
+// Package utils provides error handling and logging utilities.
+//
+//nolint:revive
 package utils
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-// 错误代码枚举（表达原则：数据结构优先）
+// ErrorCode defines error types for the crypto system.
 type ErrorCode int
 
 const (
-	// 系统级错误
+	// ErrSystem represents system-level errors.
 	ErrSystem ErrorCode = iota
+	// ErrIOError represents input/output errors.
 	ErrIOError
 
-	// 格式错误
+	// ErrInvalidMagic represents invalid magic number errors.
 	ErrInvalidMagic
+	// ErrInvalidFormat represents invalid format errors.
 	ErrInvalidFormat
 	ErrVersionMismatch
 	ErrInvalidVersion
 	ErrInvalidAlgorithm
 
-	// 加密错误
+	// ErrInvalidKey represents encryption-related errors.
 	ErrInvalidKey
 	ErrKeyGenerationFailed
 	ErrInvalidData
@@ -26,19 +33,19 @@ const (
 	ErrDecryptionFailed
 	ErrSerializationFailed
 
-	// 验证错误
+	// ErrAuthFailed represents verification errors.
 	ErrAuthFailed
 	ErrSignatureVerification
 	ErrHashMismatch
 	ErrSigningFailed
 	ErrVerificationFailed
 
-	// 用户错误
+	// ErrInvalidParameter represents user errors.
 	ErrInvalidParameter
 	ErrFileNotFound
 )
 
-// 自定义错误结构（透明原则：清晰状态）
+// CryptoError represents a custom error with code and message.
 type CryptoError struct {
 	Code    ErrorCode
 	Message string
@@ -48,13 +55,14 @@ func (e *CryptoError) Error() string {
 	return e.Message
 }
 
-// 错误上下文（模块原则：可组合）
+// ErrorContext provides context for errors.
 type ErrorContext struct {
 	Operation string
 	Position  int64
 	File      string
 }
 
+// Wrap wraps an error with context.
 func (ctx *ErrorContext) Wrap(code ErrorCode, msg string) error {
 	return &CryptoError{
 		Code: code,
@@ -63,21 +71,24 @@ func (ctx *ErrorContext) Wrap(code ErrorCode, msg string) error {
 	}
 }
 
-// 工厂函数（修复原则：及早抛出明确异常）
+// NewCryptoError creates a new crypto error.
 func NewCryptoError(code ErrorCode, msg string) *CryptoError {
 	return &CryptoError{Code: code, Message: msg}
 }
 
-// 错误分类函数
+// IsFormatError checks if error is a format error.
 func IsFormatError(err error) bool {
-	if ce, ok := err.(*CryptoError); ok {
+	ce := &CryptoError{}
+	if errors.As(err, &ce) {
 		return ce.Code >= ErrInvalidMagic && ce.Code <= ErrInvalidAlgorithm
 	}
 	return false
 }
 
+// IsSecurityError checks if error is a security error.
 func IsSecurityError(err error) bool {
-	if ce, ok := err.(*CryptoError); ok {
+	ce := &CryptoError{}
+	if errors.As(err, &ce) {
 		return ce.Code >= ErrInvalidKey && ce.Code <= ErrHashMismatch
 	}
 	return false

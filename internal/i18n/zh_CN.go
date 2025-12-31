@@ -1,6 +1,6 @@
 package i18n
 
-// zhCN 中文翻译字典
+// zhCN 中文翻译字典.
 type zhCN struct{}
 
 func (z *zhCN) Get(key string) string {
@@ -11,7 +11,7 @@ func (z *zhCN) Get(key string) string {
 	return translation
 }
 
-// zhTranslations 中文翻译映射
+// zhTranslations 中文翻译映射.
 var zhTranslations = map[string]string{
 	// 根命令和应用信息
 	"app.name":        "fzjjyz",

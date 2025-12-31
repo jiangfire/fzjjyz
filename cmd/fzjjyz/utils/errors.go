@@ -1,28 +1,41 @@
+// Package utils 提供工具函数和错误处理.
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
-// ErrorType 定义错误类型
+// ErrorType 定义错误类型.
 type ErrorType string
 
 const (
+	// ErrorInvalidInput 输入错误.
 	ErrorInvalidInput ErrorType = "输入错误"
-	ErrorKeyNotFound  ErrorType = "密钥文件不存在"
-	ErrorKeyInvalid   ErrorType = "密钥格式无效"
+	// ErrorKeyNotFound 密钥文件不存在.
+	ErrorKeyNotFound ErrorType = "密钥文件不存在"
+	// ErrorKeyInvalid 密钥格式无效.
+	ErrorKeyInvalid ErrorType = "密钥格式无效"
+	// ErrorFileNotFound 文件不存在.
 	ErrorFileNotFound ErrorType = "文件不存在"
-	ErrorFileExists   ErrorType = "文件已存在"
-	ErrorPermission   ErrorType = "权限不足"
-	ErrorEncryption   ErrorType = "加密失败"
-	ErrorDecryption   ErrorType = "解密失败"
-	ErrorSignature    ErrorType = "签名验证失败"
-	ErrorIO           ErrorType = "读写错误"
-	ErrorUnknown      ErrorType = "未知错误"
+	// ErrorFileExists 文件已存在.
+	ErrorFileExists ErrorType = "文件已存在"
+	// ErrorPermission 权限不足.
+	ErrorPermission ErrorType = "权限不足"
+	// ErrorEncryption 加密失败.
+	ErrorEncryption ErrorType = "加密失败"
+	// ErrorDecryption 解密失败.
+	ErrorDecryption ErrorType = "解密失败"
+	// ErrorSignature 签名验证失败.
+	ErrorSignature ErrorType = "签名验证失败"
+	// ErrorIO 读写错误.
+	ErrorIO ErrorType = "读写错误"
+	// ErrorUnknown 未知错误.
+	ErrorUnknown ErrorType = "未知错误"
 )
 
-// UserError 用户友好的错误包装
+// UserError 用户友好的错误包装.
 type UserError struct {
 	Type    ErrorType
 	Message string
@@ -40,7 +53,7 @@ func (e *UserError) Unwrap() error {
 	return e.Inner
 }
 
-// NewUserError 创建用户友好错误
+// NewUserError 创建用户友好错误.
 func NewUserError(errType ErrorType, message string, inner error) error {
 	return &UserError{
 		Type:    errType,
@@ -49,14 +62,15 @@ func NewUserError(errType ErrorType, message string, inner error) error {
 	}
 }
 
-// WrapError 包装原始错误为用户友好错误
+// WrapError 包装原始错误为用户友好错误.
 func WrapError(err error, context string) error {
 	if err == nil {
 		return nil
 	}
 
 	// 如果已经是 UserError，直接返回
-	if _, ok := err.(*UserError); ok {
+	userError := &UserError{}
+	if errors.As(err, &userError) {
 		return err
 	}
 
@@ -96,14 +110,15 @@ func WrapError(err error, context string) error {
 	}
 }
 
-// PrintError 打印用户友好的错误信息
+// PrintError 打印用户友好的错误信息.
 func PrintError(err error) {
 	if err == nil {
 		return
 	}
 
 	// 检查是否是 UserError
-	if userErr, ok := err.(*UserError); ok {
+	userErr := &UserError{}
+	if errors.As(err, &userErr) {
 		fmt.Printf("❌ %s\n", userErr.Message)
 		if userErr.Inner != nil && userErr.Type != ErrorUnknown {
 			// 在 verbose 模式下显示内部错误细节
@@ -115,22 +130,22 @@ func PrintError(err error) {
 	}
 }
 
-// PrintWarning 打印警告信息
+// PrintWarning 打印警告信息.
 func PrintWarning(message string) {
 	fmt.Printf("⚠️  %s\n", message)
 }
 
-// PrintSuccess 打印成功信息
+// PrintSuccess 打印成功信息.
 func PrintSuccess(message string) {
 	fmt.Printf("✅ %s\n", message)
 }
 
-// PrintInfo 打印信息
+// PrintInfo 打印信息.
 func PrintInfo(message string) {
 	fmt.Printf("ℹ️  %s\n", message)
 }
 
-// ConfirmPrompt 确认提示
+// ConfirmPrompt 确认提示.
 func ConfirmPrompt(message string, defaultYes bool) bool {
 	var response string
 
@@ -154,7 +169,7 @@ func ConfirmPrompt(message string, defaultYes bool) bool {
 	return response == "y" || response == "yes"
 }
 
-// SelectPrompt 选择提示
+// SelectPrompt 选择提示.
 func SelectPrompt(message string, options []string, defaultIndex int) int {
 	fmt.Printf("%s:\n", message)
 	for i, opt := range options {

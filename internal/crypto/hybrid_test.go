@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"crypto/rand"
 	"testing"
-
-	"github.com/cloudflare/circl/kem"
 )
 
-// TestHybridEncryption 测试混合加密的封装和解封装
+// TestHybridEncryption 测试混合加密的封装和解封装.
 func TestHybridEncryption(t *testing.T) {
 	// 生成密钥对
-	kyberPubRaw, kyberPrivRaw, err := GenerateKyberKeys()
+	kyberPub, kyberPriv, err := GenerateKyberKeys()
 	if err != nil {
 		t.Fatalf("生成 Kyber 密钥失败: %v", err)
 	}
@@ -20,10 +18,6 @@ func TestHybridEncryption(t *testing.T) {
 	if err != nil {
 		t.Fatalf("生成 ECDH 密钥失败: %v", err)
 	}
-
-	// 类型转换
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 加密 - 封装
 	encryptor := NewHybridEncryptor(kyberPub, ecdhPub)
@@ -58,10 +52,12 @@ func TestHybridEncryption(t *testing.T) {
 	}
 }
 
-// TestAESGCMEncryption 测试 AES-GCM 加密解密
+// TestAESGCMEncryption 测试 AES-GCM 加密解密.
 func TestAESGCMEncryption(t *testing.T) {
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	if _, err := rand.Read(sharedSecret); err != nil {
+		t.Fatalf("生成随机密钥失败: %v", err)
+	}
 	plaintext := []byte("Test data for encryption")
 
 	// 加密
@@ -87,10 +83,12 @@ func TestAESGCMEncryption(t *testing.T) {
 	}
 }
 
-// TestEncryptionIntegrity 测试加密完整性验证（防篡改）
+// TestEncryptionIntegrity 测试加密完整性验证（防篡改）.
 func TestEncryptionIntegrity(t *testing.T) {
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	if _, err := rand.Read(sharedSecret); err != nil {
+		t.Fatalf("生成随机密钥失败: %v", err)
+	}
 	plaintext := []byte("Sensitive data")
 
 	ciphertext, nonce, err := AESGCMEncrypt(sharedSecret, plaintext)
@@ -108,12 +106,10 @@ func TestEncryptionIntegrity(t *testing.T) {
 	}
 }
 
-// TestHybridWithDifferentData 测试不同数据的混合加密
+// TestHybridWithDifferentData 测试不同数据的混合加密.
 func TestHybridWithDifferentData(t *testing.T) {
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	testCases := []struct {
 		name string
@@ -161,11 +157,10 @@ func TestHybridWithDifferentData(t *testing.T) {
 	}
 }
 
-// TestHybridEncryptorConstructor 测试构造函数
+// TestHybridEncryptorConstructor 测试构造函数.
 func TestHybridEncryptorConstructor(t *testing.T) {
-	kyberPubRaw, _, _ := GenerateKyberKeys()
+	kyberPub, _, _ := GenerateKyberKeys()
 	ecdhPub, _, _ := GenerateECDHKeys()
-	kyberPub := kyberPubRaw.(kem.PublicKey)
 
 	encryptor := NewHybridEncryptor(kyberPub, ecdhPub)
 	if encryptor == nil {
@@ -181,11 +176,10 @@ func TestHybridEncryptorConstructor(t *testing.T) {
 	}
 }
 
-// TestHybridDecryptorConstructor 测试解密器构造函数
+// TestHybridDecryptorConstructor 测试解密器构造函数.
 func TestHybridDecryptorConstructor(t *testing.T) {
-	_, kyberPrivRaw, _ := GenerateKyberKeys()
+	_, kyberPriv, _ := GenerateKyberKeys()
 	_, ecdhPriv, _ := GenerateECDHKeys()
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	decryptor := NewHybridDecryptor(kyberPriv, ecdhPriv)
 	if decryptor == nil {
@@ -201,12 +195,10 @@ func TestHybridDecryptorConstructor(t *testing.T) {
 	}
 }
 
-// TestSharedSecretLength 测试共享密钥长度一致性
+// TestSharedSecretLength 测试共享密钥长度一致性.
 func TestSharedSecretLength(t *testing.T) {
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	encryptor := NewHybridEncryptor(kyberPub, ecdhPub)
 	decryptor := NewHybridDecryptor(kyberPriv, ecdhPriv)
@@ -233,10 +225,12 @@ func TestSharedSecretLength(t *testing.T) {
 	}
 }
 
-// TestAESGCMNonceUniqueness 测试 Nonce 唯一性
+// TestAESGCMNonceUniqueness 测试 Nonce 唯一性.
 func TestAESGCMNonceUniqueness(t *testing.T) {
 	key := make([]byte, 32)
-	rand.Read(key)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatalf("生成随机密钥失败: %v", err)
+	}
 	data := []byte("test")
 
 	nonces := make(map[string]bool)
@@ -254,10 +248,12 @@ func TestAESGCMNonceUniqueness(t *testing.T) {
 	}
 }
 
-// TestAESGCMEmptyData 测试空数据加密
+// TestAESGCMEmptyData 测试空数据加密.
 func TestAESGCMEmptyData(t *testing.T) {
 	key := make([]byte, 32)
-	rand.Read(key)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatalf("生成随机密钥失败: %v", err)
+	}
 
 	ciphertext, nonce, err := AESGCMEncrypt(key, []byte{})
 	if err != nil {
@@ -274,7 +270,7 @@ func TestAESGCMEmptyData(t *testing.T) {
 	}
 }
 
-// TestAESGCMInvalidKey 测试无效密钥
+// TestAESGCMInvalidKey 测试无效密钥.
 func TestAESGCMInvalidKey(t *testing.T) {
 	// 密钥长度错误
 	invalidKeys := [][]byte{
@@ -293,10 +289,12 @@ func TestAESGCMInvalidKey(t *testing.T) {
 	}
 }
 
-// TestAESGCMTamperedCiphertext 测试密文篡改检测
+// TestAESGCMTamperedCiphertext 测试密文篡改检测.
 func TestAESGCMTamperedCiphertext(t *testing.T) {
 	key := make([]byte, 32)
-	rand.Read(key)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatalf("生成随机密钥失败: %v", err)
+	}
 	data := []byte("sensitive data")
 
 	ciphertext, nonce, err := AESGCMEncrypt(key, data)
@@ -319,10 +317,12 @@ func TestAESGCMTamperedCiphertext(t *testing.T) {
 	}
 }
 
-// TestAESGCMTamperedNonce 测试 Nonce 篡改检测
+// TestAESGCMTamperedNonce 测试 Nonce 篡改检测.
 func TestAESGCMTamperedNonce(t *testing.T) {
 	key := make([]byte, 32)
-	rand.Read(key)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatalf("生成随机密钥失败: %v", err)
+	}
 	data := []byte("test")
 
 	ciphertext, nonce, err := AESGCMEncrypt(key, data)
@@ -341,12 +341,10 @@ func TestAESGCMTamperedNonce(t *testing.T) {
 	}
 }
 
-// TestHybridConsistency 测试混合加密一致性
+// TestHybridConsistency 测试混合加密一致性.
 func TestHybridConsistency(t *testing.T) {
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	encryptor := NewHybridEncryptor(kyberPub, ecdhPub)
 	decryptor := NewHybridDecryptor(kyberPriv, ecdhPriv)

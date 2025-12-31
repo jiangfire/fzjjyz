@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
-	"github.com/cloudflare/circl/kem"
 )
 
 // TestIntegrationEndToEnd 完整的端到端加密解密流程测试
@@ -142,8 +141,8 @@ func TestIntegrationTamperDetection(t *testing.T) {
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
 
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
+	kyberPub := kyberPubRaw
+	kyberPriv := kyberPrivRaw
 
 	// 创建并加密文件
 	testFile := filepath.Join(tmpDir, "test.txt")
@@ -200,7 +199,7 @@ func TestIntegrationWrongKey(t *testing.T) {
 	_, kyberPriv2, _ := GenerateKyberKeys()
 	_, ecdhPriv2, _ := GenerateECDHKeys()
 
-	kyberPub1Typed := kyberPub1.(kem.PublicKey)
+	kyberPub1Typed := kyberPub1
 
 	// 创建并加密
 	testFile := filepath.Join(tmpDir, "secret.txt")
@@ -234,12 +233,9 @@ func TestIntegrationEmptyFile(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 空文件
 	emptyFile := filepath.Join(tmpDir, "empty.txt")
@@ -280,12 +276,9 @@ func TestIntegrationLargeFile(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建 500KB 随机数据
 	largeData := make([]byte, 500*1024)
@@ -331,12 +324,9 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	// 创建多个文件
 	files := []struct {
@@ -390,11 +380,8 @@ func TestIntegrationKeyPersistence(t *testing.T) {
 	}()
 
 	// 生成并保存密钥
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	pubPath := filepath.Join(tmpDir, "pub.pem")
 	privPath := filepath.Join(tmpDir, "priv.pem")
@@ -458,12 +445,9 @@ func TestIntegrationSpecialFilenames(t *testing.T) {
 		}
 	}()
 
-	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
 	_, dilithiumPriv, _ := GenerateDilithiumKeys()
-
-	kyberPub := kyberPubRaw.(kem.PublicKey)
-	kyberPriv := kyberPrivRaw.(kem.PrivateKey)
 
 	specialNames := []string{
 		"test-file_v1.2.txt",

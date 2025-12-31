@@ -9,7 +9,9 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 )
 
-// ParseFileHeader 从 Reader 中解析文件头
+// ParseFileHeader 从 Reader 中解析文件头.
+//
+//nolint:funlen
 func ParseFileHeader(r io.Reader) (*FileHeader, error) {
 	header := &FileHeader{}
 
@@ -192,13 +194,13 @@ func ParseFileHeader(r io.Reader) (*FileHeader, error) {
 	return header, nil
 }
 
-// ParseFileHeaderFromBytes 从字节切片解析文件头
+// ParseFileHeaderFromBytes 从字节切片解析文件头.
 func ParseFileHeaderFromBytes(data []byte) (*FileHeader, error) {
 	return ParseFileHeader(bytes.NewReader(data))
 }
 
 // ExtractHeaderSize 从加密文件中提取头部大小
-// 这在需要只读取头部而不解析完整数据时很有用
+// 这在需要只读取头部而不解析完整数据时很有用.
 func ExtractHeaderSize(data []byte) (int, error) {
 	if len(data) < 31 {
 		return 0, utils.NewCryptoError(
@@ -272,7 +274,7 @@ func ExtractHeaderSize(data []byte) (int, error) {
 	return pos, nil
 }
 
-// IsValidEncryptedFile 检查数据是否为有效的加密文件格式
+// IsValidEncryptedFile 检查数据是否为有效的加密文件格式.
 func IsValidEncryptedFile(data []byte) bool {
 	if len(data) < 10 {
 		return false
@@ -297,7 +299,7 @@ func IsValidEncryptedFile(data []byte) bool {
 	return true
 }
 
-// GetHeaderInfo 从文件头提取基本信息（用于快速预览）
+// HeaderInfo contains basic file header information for quick preview.
 type HeaderInfo struct {
 	Filename  string
 	FileSize  uint64
@@ -309,6 +311,7 @@ type HeaderInfo struct {
 	HasSig    bool
 }
 
+// GetHeaderInfo extracts basic information from a file header for quick preview.
 func GetHeaderInfo(header *FileHeader) *HeaderInfo {
 	algo := "Kyber768+ECDH+AES256-GCM"
 	if header.Algorithm != 0x02 {

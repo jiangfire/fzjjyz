@@ -7,27 +7,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// 版本信息
+// 版本信息.
 const (
 	Version     = "0.1.0"
 	AppName     = "fzjjyz"
 	Description = "后量子文件加密工具 - 使用 Kyber768 + ECDH + AES-256-GCM + Dilithium3"
 )
 
-// 根命令（文本将在 init 中通过 i18n 翻译）
+// 根命令（文本将在 init 中通过 i18n 翻译）.
 var rootCmd *cobra.Command
 
-// 全局标志
+// 全局标志.
 var (
 	verbose bool
 	force   bool
 )
 
+//nolint:gochecknoinits // init函数用于必要的包级初始化：国际化设置和命令注册
 func init() {
 	// 初始化国际化（从环境变量 LANG 读取）
 	if err := i18n.Init(""); err != nil {
 		// 如果初始化失败，使用默认语言（中文）
-		i18n.Init("zh_CN")
+		_ = i18n.Init("zh_CN")
 	}
 
 	// 创建根命令

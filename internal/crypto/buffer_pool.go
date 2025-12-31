@@ -3,22 +3,22 @@ package crypto
 import "sync"
 
 const (
-	// DefaultBufferSize 默认缓冲区大小：64KB
+	// DefaultBufferSize 默认缓冲区大小：64KB.
 	DefaultBufferSize = 64 * 1024
 
-	// MaxBufferSize 最大缓冲区大小：1MB
+	// MaxBufferSize 最大缓冲区大小：1MB.
 	MaxBufferSize = 1024 * 1024
 
-	// MinBufferSize 最小缓冲区大小：4KB
+	// MinBufferSize 最小缓冲区大小：4KB.
 	MinBufferSize = 4 * 1024
 )
 
-// BufferPool 缓冲区池，用于减少 GC 压力
+// BufferPool 缓冲区池，用于减少 GC 压力.
 type BufferPool struct {
 	pool sync.Pool
 }
 
-// NewBufferPool 创建新的缓冲区池
+// NewBufferPool 创建新的缓冲区池.
 func NewBufferPool(bufferSize int) *BufferPool {
 	if bufferSize < MinBufferSize {
 		bufferSize = MinBufferSize
@@ -36,12 +36,12 @@ func NewBufferPool(bufferSize int) *BufferPool {
 	}
 }
 
-// Get 从池中获取一个缓冲区
+// Get 从池中获取一个缓冲区.
 func (bp *BufferPool) Get() []byte {
 	return bp.pool.Get().([]byte)
 }
 
-// Put 将缓冲区归还到池中
+// Put 将缓冲区归还到池中.
 func (bp *BufferPool) Put(b []byte) {
 	// 只有容量大于 0 的缓冲区才放回池中
 	if cap(b) > 0 {
@@ -51,7 +51,7 @@ func (bp *BufferPool) Put(b []byte) {
 	}
 }
 
-// OptimalBufferSize 根据文件大小推荐缓冲区大小
+// OptimalBufferSize 根据文件大小推荐缓冲区大小.
 func OptimalBufferSize(fileSize int64) int {
 	switch {
 	case fileSize < 10*1024*1024: // < 10MB

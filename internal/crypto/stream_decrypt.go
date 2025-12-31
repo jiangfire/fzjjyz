@@ -22,7 +22,7 @@ type StreamingDecryptor struct {
 	pool         *BufferPool
 }
 
-// NewStreamingDecryptor 创建流式解密器
+// NewStreamingDecryptor 创建流式解密器.
 func NewStreamingDecryptor(
 	kyberPriv kem.PrivateKey,
 	ecdhPriv *ecdh.PrivateKey,
@@ -58,7 +58,7 @@ func NewStreamingDecryptor(
 }
 
 // DecryptFile 流式解密文件
-// 使用核心解密逻辑，支持缓冲区池优化
+// 使用核心解密逻辑，支持缓冲区池优化.
 func (sd *StreamingDecryptor) DecryptFile(inputPath, outputPath string) error {
 	// 调用核心解密逻辑
 	plaintext, err := DecryptFileCore(inputPath, sd.kyberPriv, sd.ecdhPriv, sd.dilithiumPub)

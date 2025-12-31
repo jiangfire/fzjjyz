@@ -10,6 +10,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 )
 
+//nolint:funlen
 func TestParseFileHeader(t *testing.T) {
 	// 创建一个完整的文件头
 	header := &FileHeader{
@@ -33,11 +34,21 @@ func TestParseFileHeader(t *testing.T) {
 	}
 
 	// 填充随机数据
-	rand.Read(header.KyberEnc)
-	rand.Read(header.ECDHPub[:])
-	rand.Read(header.IV[:])
-	rand.Read(header.Signature)
-	rand.Read(header.SHA256Hash[:])
+	if _, err := rand.Read(header.KyberEnc); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.ECDHPub[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.IV[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.Signature); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.SHA256Hash[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
 
 	// 序列化
 	data, err := header.MarshalBinary()
@@ -210,6 +221,7 @@ func TestParseEmptyFile(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestParseFileWithFile(t *testing.T) {
 	// 测试从文件解析
 	tempDir := t.TempDir()
@@ -237,23 +249,39 @@ func TestParseFileWithFile(t *testing.T) {
 	}
 
 	// 填充随机数据
-	rand.Read(header.KyberEnc)
-	rand.Read(header.ECDHPub[:])
-	rand.Read(header.IV[:])
-	rand.Read(header.Signature)
-	rand.Read(header.SHA256Hash[:])
+	if _, err := rand.Read(header.KyberEnc); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.ECDHPub[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.IV[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.Signature); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
+	if _, err := rand.Read(header.SHA256Hash[:]); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
 
 	data, _ := header.MarshalBinary()
+	// #nosec G306 - 测试环境使用标准权限
 	if err := os.WriteFile(testFile, data, 0644); err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
 	// 从文件解析
+	// #nosec G304 - 测试文件路径来自临时目录
 	f, err := os.Open(testFile)
 	if err != nil {
 		t.Fatalf("Failed to open test file: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 
 	parsed, err := ParseFileHeader(f)
 	if err != nil {
@@ -376,7 +404,7 @@ func TestParseHeaderWithEmptyFields(t *testing.T) {
 	if parsed.KyberEncLen != 0 {
 		t.Error("KyberEncLen should be 0")
 	}
-	if parsed.KyberEnc != nil && len(parsed.KyberEnc) > 0 {
+	if len(parsed.KyberEnc) > 0 {
 		t.Error("KyberEnc should be empty")
 	}
 }
