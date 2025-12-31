@@ -357,6 +357,7 @@ fzjjyz encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --buffer-size 64
 
 ---
 
-**文档版本**: 1.0
-**最后更新**: 2025-12-26
+**文档版本**: 1.1
+**最后更新**: 2025-12-31
+**当前版本**: v0.2.0 (已发布)
 **维护者**: fzjjyz 开发团队

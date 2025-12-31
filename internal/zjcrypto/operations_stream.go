@@ -1,4 +1,5 @@
-package crypto
+// 包名与标准库 crypto 冲突，但实际使用完整路径导入不会冲突
+package zjcrypto
 
 import (
 	"crypto/ecdh"

@@ -1,4 +1,5 @@
-package crypto
+// 包名与标准库 crypto 冲突，但实际使用完整路径导入不会冲突
+package zjcrypto
 
 import "sync"
 
@@ -47,6 +48,7 @@ func (bp *BufferPool) Put(b []byte) {
 	if cap(b) > 0 {
 		// 重置切片长度，方便复用
 		b = b[:cap(b)]
+		//nolint:staticcheck // SA6002: sync.Pool.Put 接受 interface{}，[]byte 在 Go 1.18+ 可用，用于减少 GC 压力
 		bp.pool.Put(b)
 	}
 }

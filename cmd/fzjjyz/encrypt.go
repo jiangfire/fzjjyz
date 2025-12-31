@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
-	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
+	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/spf13/cobra"
 )
 
@@ -85,7 +85,7 @@ func prepareEncryptOutput() {
 	}
 }
 
-func loadEncryptKeys(reporter *utils.ProgressReporter) (*crypto.HybridPublicKey, interface{}, error) {
+func loadEncryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPublicKey, interface{}, error) {
 	reporter.Step("progress.loading_keys")
 
 	// 加载公钥
@@ -110,7 +110,7 @@ func loadEncryptKeys(reporter *utils.ProgressReporter) (*crypto.HybridPublicKey,
 
 func executeEncrypt(
 	reporter *utils.ProgressReporter,
-	hybridPub *crypto.HybridPublicKey,
+	hybridPub *zjcrypto.HybridPublicKey,
 	dilithiumPriv interface{},
 ) error {
 	// 显示详细信息
@@ -146,13 +146,13 @@ func getEncryptBufferSize() int {
 		return encryptBufferSize * 1024
 	}
 	size, _ := utils.GetFileSize(encryptInput)
-	return crypto.OptimalBufferSize(size)
+	return zjcrypto.OptimalBufferSize(size)
 }
 
-func getEncryptFunction(hybridPub *crypto.HybridPublicKey, dilithiumPriv interface{}, bufSize int) func() error {
+func getEncryptFunction(hybridPub *zjcrypto.HybridPublicKey, dilithiumPriv interface{}, bufSize int) func() error {
 	if encryptStreaming {
 		return func() error {
-			return crypto.EncryptFileStreaming(
+			return zjcrypto.EncryptFileStreaming(
 				encryptInput, encryptOutput,
 				hybridPub.Kyber, hybridPub.ECDH,
 				dilithiumPriv,
@@ -161,7 +161,7 @@ func getEncryptFunction(hybridPub *crypto.HybridPublicKey, dilithiumPriv interfa
 		}
 	}
 	return func() error {
-		return crypto.EncryptFile(
+		return zjcrypto.EncryptFile(
 			encryptInput, encryptOutput,
 			hybridPub.Kyber, hybridPub.ECDH,
 			dilithiumPriv,

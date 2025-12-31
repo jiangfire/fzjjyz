@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 
 	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
-	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
+	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/spf13/cobra"
 )
 
@@ -101,7 +101,7 @@ func parseDecryptHeader() (*format.FileHeader, error) {
 	return header, nil
 }
 
-func loadDecryptKeys(reporter *utils.ProgressReporter) (*crypto.HybridPrivateKey, interface{}, error) {
+func loadDecryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPrivateKey, interface{}, error) {
 	reporter.Step("progress.loading_keys")
 
 	// 加载私钥
@@ -131,7 +131,7 @@ func loadDecryptKeys(reporter *utils.ProgressReporter) (*crypto.HybridPrivateKey
 
 func executeDecrypt(
 	reporter *utils.ProgressReporter,
-	hybridPriv *crypto.HybridPrivateKey,
+	hybridPriv *zjcrypto.HybridPrivateKey,
 	dilithiumPub interface{},
 	header *format.FileHeader,
 ) error {
@@ -171,13 +171,13 @@ func getDecryptBufferSize() int {
 		return decryptBufferSize * 1024
 	}
 	size, _ := utils.GetFileSize(decryptInput)
-	return crypto.OptimalBufferSize(size)
+	return zjcrypto.OptimalBufferSize(size)
 }
 
-func getDecryptFunction(hybridPriv *crypto.HybridPrivateKey, dilithiumPub interface{}, bufSize int) func() error {
+func getDecryptFunction(hybridPriv *zjcrypto.HybridPrivateKey, dilithiumPub interface{}, bufSize int) func() error {
 	if decryptStreaming {
 		return func() error {
-			return crypto.DecryptFileStreaming(
+			return zjcrypto.DecryptFileStreaming(
 				decryptInput, decryptOutput,
 				hybridPriv.Kyber, hybridPriv.ECDH,
 				dilithiumPub,
@@ -186,7 +186,7 @@ func getDecryptFunction(hybridPriv *crypto.HybridPrivateKey, dilithiumPub interf
 		}
 	}
 	return func() error {
-		return crypto.DecryptFile(
+		return zjcrypto.DecryptFile(
 			decryptInput, decryptOutput,
 			hybridPriv.Kyber, hybridPriv.ECDH,
 			dilithiumPub,

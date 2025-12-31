@@ -1,4 +1,4 @@
-package crypto
+package zjcrypto
 
 import (
 	"crypto/ecdh"
@@ -132,7 +132,7 @@ func writeEncryptedFile(outputPath string, headerBytes []byte, ciphertext []byte
 
 // parseEncryptedFile 读取并解析加密文件.
 func parseEncryptedFile(inputPath string) (header *format.FileHeader, ciphertext []byte, err error) {
-	// 读取加密文件
+	// G304: inputPath 应由调用方验证
 	encryptedData, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read encrypted file: %w", err)
@@ -224,7 +224,7 @@ func EncryptFileCore(
 	ecdhPub *ecdh.PublicKey,
 	dilithiumPriv interface{},
 ) (header *format.FileHeader, ciphertext []byte, err error) {
-	// 读取原始文件
+	// G304: inputPath 应由调用方验证
 	plaintext, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, nil, utils.NewCryptoError(

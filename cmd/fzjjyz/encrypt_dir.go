@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
+	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/spf13/cobra"
 )
 
@@ -77,7 +77,7 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 	fmt.Printf("\n")
 	fmt.Printf("[1/4] %s ", i18n.T("progress.packing"))
 	var zipBuffer bytes.Buffer
-	if err := crypto.CreateZipFromDirectory(encryptDirInput, &zipBuffer, crypto.DefaultArchiveOptions); err != nil {
+	if err := zjcrypto.CreateZipFromDirectory(encryptDirInput, &zipBuffer, zjcrypto.DefaultArchiveOptions); err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("pack failed: %w",
 			i18n.TranslateError("error.pack_failed", err))
@@ -86,19 +86,19 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 
 	// 获取ZIP信息
 	zipSize := len(zipData)
-	fileCount, _ := crypto.CountZipFiles(zipData)
+	fileCount, _ := zjcrypto.CountZipFiles(zipData)
 	fmt.Printf(i18n.T("archive.packed")+"\n", zipSize, fileCount)
 
 	// [2/4] 加载密钥
 	fmt.Printf("[2/4] %s ", i18n.T("progress.loading_keys"))
-	hybridPub, err := crypto.LoadPublicKeyCached(encryptDirPubKey)
+	hybridPub, err := zjcrypto.LoadPublicKeyCached(encryptDirPubKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("load public key failed: %w",
 			i18n.TranslateError("error.load_public_key_failed", err, encryptDirPubKey))
 	}
 
-	dilithiumPriv, err := crypto.LoadDilithiumPrivateKeyCached(encryptDirSignKey)
+	dilithiumPriv, err := zjcrypto.LoadDilithiumPrivateKeyCached(encryptDirSignKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("load sign key failed: %w",
@@ -122,7 +122,7 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 	if encryptDirBufferSize > 0 {
 		bufSize = encryptDirBufferSize * 1024
 	} else {
-		bufSize = crypto.OptimalBufferSize(int64(zipSize))
+		bufSize = zjcrypto.OptimalBufferSize(int64(zipSize))
 	}
 
 	if verbose {
@@ -133,7 +133,7 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 	var encryptFunc func() error
 	if encryptDirStreaming {
 		encryptFunc = func() error {
-			return crypto.EncryptFileStreaming(
+			return zjcrypto.EncryptFileStreaming(
 				tempZipPath, encryptDirOutput,
 				hybridPub.Kyber, hybridPub.ECDH,
 				dilithiumPriv,
@@ -142,7 +142,7 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 		}
 	} else {
 		encryptFunc = func() error {
-			return crypto.EncryptFile(
+			return zjcrypto.EncryptFile(
 				tempZipPath, encryptDirOutput,
 				hybridPub.Kyber, hybridPub.ECDH,
 				dilithiumPriv,

@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
+	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +64,7 @@ func runExport() error {
 	fmt.Println(i18n.T("status.public_key") + "...")
 
 	// 加载私钥文件
-	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
+	hybridPriv, err := zjcrypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
 		return fmt.Errorf("load private key failed: %w",
 			i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey))
@@ -75,7 +75,7 @@ func runExport() error {
 	ecdhPub := hybridPriv.ECDH.PublicKey()
 
 	// 导出公钥到 PEM
-	pubPEM, err := crypto.ExportPublicKey(kyberPub, ecdhPub)
+	pubPEM, err := zjcrypto.ExportPublicKey(kyberPub, ecdhPub)
 	if err != nil {
 		return fmt.Errorf("export key failed: %w",
 			i18n.TranslateError("error.export_key_failed", err))
@@ -109,13 +109,13 @@ func runImport() error {
 	}
 
 	// 加载密钥
-	hybridPub, err := crypto.LoadPublicKey(keymanagePubKey)
+	hybridPub, err := zjcrypto.LoadPublicKey(keymanagePubKey)
 	if err != nil {
 		return fmt.Errorf("load public key failed: %w",
 			i18n.TranslateError("error.load_public_key_failed", err, keymanagePubKey))
 	}
 
-	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
+	hybridPriv, err := zjcrypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
 		return fmt.Errorf("load private key failed: %w",
 			i18n.TranslateError("error.load_private_key_failed", err, keymanagePrivKey))
@@ -128,7 +128,7 @@ func runImport() error {
 	newPrivPath := filepath.Join(keymanageOutputDir, basePriv)
 
 	// 保存到新位置
-	if err := crypto.SaveKeyFiles(
+	if err := zjcrypto.SaveKeyFiles(
 		hybridPub.Kyber,
 		hybridPub.ECDH,
 		hybridPriv.Kyber,
@@ -156,7 +156,7 @@ func runVerify() error {
 	fmt.Println(i18n.T("status.success_verify") + "...")
 
 	// 加载公钥
-	hybridPub, err := crypto.LoadPublicKey(keymanagePubKey)
+	hybridPub, err := zjcrypto.LoadPublicKey(keymanagePubKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("load public key failed: %w",
@@ -164,7 +164,7 @@ func runVerify() error {
 	}
 
 	// 加载私钥
-	hybridPriv, err := crypto.LoadPrivateKey(keymanagePrivKey)
+	hybridPriv, err := zjcrypto.LoadPrivateKey(keymanagePrivKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("load private key failed: %w",

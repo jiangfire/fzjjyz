@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
-	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
+	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/cloudflare/circl/kem"
 	"github.com/spf13/cobra"
 )
@@ -113,7 +113,7 @@ type keyPair struct {
 func generateKeys(reporter *utils.ProgressReporter) (*keyPair, error) {
 	// 1. Kyber
 	reporter.Step("progress.generating_kyber")
-	kyberPub, kyberPriv, err := crypto.GenerateKyberKeys()
+	kyberPub, kyberPriv, err := zjcrypto.GenerateKyberKeys()
 	if err != nil {
 		reporter.Failed()
 		return nil, fmt.Errorf("kyber key generation failed: %w",
@@ -123,7 +123,7 @@ func generateKeys(reporter *utils.ProgressReporter) (*keyPair, error) {
 
 	// 2. ECDH
 	reporter.Step("progress.generating_ecdh")
-	ecdhPub, ecdhPriv, err := crypto.GenerateECDHKeys()
+	ecdhPub, ecdhPriv, err := zjcrypto.GenerateECDHKeys()
 	if err != nil {
 		reporter.Failed()
 		return nil, fmt.Errorf("ecdh key generation failed: %w",
@@ -133,7 +133,7 @@ func generateKeys(reporter *utils.ProgressReporter) (*keyPair, error) {
 
 	// 3. Dilithium
 	reporter.Step("progress.generating_dilithium")
-	dilithiumPub, dilithiumPriv, err := crypto.GenerateDilithiumKeys()
+	dilithiumPub, dilithiumPriv, err := zjcrypto.GenerateDilithiumKeys()
 	if err != nil {
 		reporter.Failed()
 		return nil, fmt.Errorf("dilithium key generation failed: %w",
@@ -159,14 +159,14 @@ func saveKeys(reporter *utils.ProgressReporter, keys *keyPair, paths []string) e
 	ecdhPub := keys.ecdhPub.(*ecdh.PublicKey)
 	ecdhPriv := keys.ecdhPriv.(*ecdh.PrivateKey)
 
-	if err := crypto.SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
+	if err := zjcrypto.SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
 		reporter.Failed()
 		return fmt.Errorf("save keys failed: %w",
 			i18n.TranslateError("error.save_keys_failed", err))
 	}
 
 	// 保存 Dilithium
-	if err := crypto.SaveDilithiumKeys(
+	if err := zjcrypto.SaveDilithiumKeys(
 		keys.dilithiumPub, keys.dilithiumPriv,
 		dilithiumPubPath, dilithiumPrivPath,
 	); err != nil {

@@ -1,5 +1,5 @@
 // Package crypto 提供文件加密、解密和归档处理功能
-package crypto
+package zjcrypto
 
 import (
 	"archive/zip"
@@ -70,6 +70,7 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 	}
 
 	// 递归遍历目录
+	//nolint:wrapcheck // filepath.Walk 的错误已在回调中包装，此处直接返回
 	return filepath.Walk(absSource, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return fmt.Errorf("walk error at %s: %w", path, walkErr)
@@ -80,20 +81,14 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 			return nil
 		}
 
-		// 检查是否为符号链接
+		// 处理符号链接
 		if info.Mode()&os.ModeSymlink != 0 {
-			if !opts.FollowSymlinks {
+			info, err = handleSymlink(path, absSource, opts.FollowSymlinks)
+			if err != nil {
+				return err
+			}
+			if info == nil {
 				return nil // 跳过符号链接
-			}
-			// 读取链接目标
-			target, err := os.Readlink(path)
-			if err != nil {
-				return fmt.Errorf("readlink %s: %w", path, err)
-			}
-			// 获取目标信息
-			info, err = os.Stat(target)
-			if err != nil {
-				return fmt.Errorf("stat symlink target %s: %w", target, err)
 			}
 		}
 
@@ -183,6 +178,7 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		}
 
 		// 构建完整的目标路径
+		// G305: 已在前面检查 ..、/、\ 并验证路径前缀，防止路径遍历
 		targetPath := filepath.Join(targetDir, file.Name)
 
 		// 再次验证最终路径 - 防止路径遍历
@@ -202,7 +198,15 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		}
 
 		// 累加大小检查（防止解压缩炸弹）
-		totalSize += int64(file.UncompressedSize64)
+		// G115: uint64 -> int64 转换，但有 maxTotalSize=1GB 限制，不会溢出
+		size := file.UncompressedSize64
+		if size > uint64(maxTotalSize) {
+			return utils.NewCryptoError(
+				utils.ErrInvalidParameter,
+				fmt.Sprintf("File size exceeds limit: %d bytes", size),
+			)
+		}
+		totalSize += int64(size)
 		if totalSize > maxTotalSize {
 			return utils.NewCryptoError(
 				utils.ErrInvalidParameter,
@@ -235,6 +239,7 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		}()
 
 		// 创建目标文件 - 使用文件原始权限
+		// G304: targetPath 已在前面验证在 targetDir 内
 		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, file.Mode())
 		if err != nil {
 			return fmt.Errorf("create output file %s: %w", targetPath, err)
@@ -246,6 +251,7 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		}()
 
 		// 复制内容
+		// G110: 已通过 totalSize 检查限制总大小（maxTotalSize=1GB），防止解压缩炸弹
 		if _, err := io.Copy(dstFile, srcFile); err != nil {
 			return fmt.Errorf("copy content to %s: %w", targetPath, err)
 		}
@@ -265,7 +271,10 @@ func GetZipSize(zipData []byte) (int64, error) {
 	for _, file := range reader.File {
 		// G115: 显式转换，注意潜在的溢出
 		// file.UncompressedSize64 是 uint64，转换为 int64
-		// 如果文件超过 2^63-1 字节，会溢出，但这是合理的限制
+		// 检查是否超过 maxTotalSize (1GB)，防止溢出
+		if file.UncompressedSize64 > uint64(maxTotalSize) {
+			return 0, fmt.Errorf("file size exceeds maximum: %d bytes", file.UncompressedSize64)
+		}
 		totalSize += int64(file.UncompressedSize64)
 	}
 
@@ -279,4 +288,35 @@ func CountZipFiles(zipData []byte) (int, error) {
 		return 0, fmt.Errorf("create ZIP reader: %w", err)
 	}
 	return len(reader.File), nil
+}
+
+// handleSymlink 处理符号链接，降低嵌套复杂度.
+// 返回: 更新后的FileInfo，如果跳过则返回nil，错误表示验证失败.
+func handleSymlink(path, absSource string, followSymlinks bool) (os.FileInfo, error) {
+	if !followSymlinks {
+		return nil, nil // 跳过符号链接
+	}
+
+	// 读取链接目标
+	target, err := os.Readlink(path)
+	if err != nil {
+		return nil, fmt.Errorf("readlink %s: %w", path, err)
+	}
+
+	// 验证目标在源目录内，防止符号链接指向外部
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return nil, fmt.Errorf("abs path %s: %w", target, err)
+	}
+	if !strings.HasPrefix(absTarget, absSource) {
+		return nil, fmt.Errorf("symlink target outside source directory: %s", target)
+	}
+
+	// 获取目标信息
+	info, err := os.Stat(target)
+	if err != nil {
+		return nil, fmt.Errorf("stat symlink target %s: %w", target, err)
+	}
+
+	return info, nil
 }

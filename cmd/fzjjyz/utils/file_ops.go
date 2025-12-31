@@ -1,4 +1,4 @@
-// Package utils provides file operation utilities (DRY principle: eliminate repetition)..
+// Package utils provides file operation utilities (DRY principle: eliminate repetition).
 package utils
 
 import (

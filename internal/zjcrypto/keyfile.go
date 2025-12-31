@@ -1,4 +1,4 @@
-package crypto
+package zjcrypto
 
 import (
 	"crypto/ecdh"
@@ -112,11 +112,13 @@ func SaveKeyFiles(
 
 // LoadKeyFiles 加载密钥文件.
 func LoadKeyFiles(pubPath, privPath string) (*HybridPublicKey, *HybridPrivateKey, error) {
+	// G304: 调用方应验证路径安全性
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read public key file: %w", err)
 	}
 
+	// G304: 调用方应验证路径安全性
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read private key file: %w", err)
@@ -127,6 +129,7 @@ func LoadKeyFiles(pubPath, privPath string) (*HybridPublicKey, *HybridPrivateKey
 
 // LoadPublicKey 只加载公钥文件.
 func LoadPublicKey(pubPath string) (*HybridPublicKey, error) {
+	// G304: 调用方应验证路径安全性
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
 		return nil, fmt.Errorf("read public key file: %w", err)
@@ -143,6 +146,7 @@ func LoadPublicKey(pubPath string) (*HybridPublicKey, error) {
 
 // LoadPrivateKey 只加载私钥文件.
 func LoadPrivateKey(privPath string) (*HybridPrivateKey, error) {
+	// G304: 调用方应验证路径安全性
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
 		return nil, fmt.Errorf("read private key file: %w", err)
@@ -242,11 +246,13 @@ func ImportDilithiumKeys(pubPEM, privPEM []byte) (interface{}, interface{}, erro
 
 // LoadDilithiumKeys 从文件加载 Dilithium3 密钥对.
 func LoadDilithiumKeys(pubPath, privPath string) (interface{}, interface{}, error) {
+	// G304: 调用方应验证路径安全性
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read Dilithium public key file: %w", err)
 	}
 
+	// G304: 调用方应验证路径安全性
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read Dilithium private key file: %w", err)
@@ -257,6 +263,7 @@ func LoadDilithiumKeys(pubPath, privPath string) (interface{}, interface{}, erro
 
 // LoadDilithiumPublicKey 只加载 Dilithium 公钥.
 func LoadDilithiumPublicKey(pubPath string) (interface{}, error) {
+	// G304: 调用方应验证路径安全性
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
 		return nil, fmt.Errorf("read Dilithium public key file: %w", err)
@@ -283,6 +290,7 @@ func LoadDilithiumPublicKey(pubPath string) (interface{}, error) {
 
 // LoadDilithiumPrivateKey 只加载 Dilithium 私钥.
 func LoadDilithiumPrivateKey(privPath string) (interface{}, error) {
+	// G304: 调用方应验证路径安全性
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
 		return nil, fmt.Errorf("read Dilithium private key file: %w", err)

@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"codeberg.org/jiangfire/fzjjyz/internal/crypto"
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
+	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/spf13/cobra"
 )
 
@@ -97,7 +97,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 
 	// [1/4] 加载密钥
 	fmt.Printf("\n[1/4] %s ", i18n.T("progress.loading_keys"))
-	hybridPriv, err := crypto.LoadPrivateKeyCached(decryptDirPrivKey)
+	hybridPriv, err := zjcrypto.LoadPrivateKeyCached(decryptDirPrivKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("load private key failed: %w",
@@ -106,7 +106,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 
 	var dilithiumPub interface{}
 	if decryptDirVerifyKey != "" {
-		dilithiumPub, err = crypto.LoadDilithiumPublicKeyCached(decryptDirVerifyKey)
+		dilithiumPub, err = zjcrypto.LoadDilithiumPublicKeyCached(decryptDirVerifyKey)
 		if err != nil {
 			fmt.Println(i18n.T("status.failed"))
 			return fmt.Errorf("load verify key failed: %w",
@@ -126,7 +126,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 		bufSize = decryptDirBufferSize * 1024
 	} else {
 		stat, _ := os.Stat(decryptDirInput)
-		bufSize = crypto.OptimalBufferSize(stat.Size())
+		bufSize = zjcrypto.OptimalBufferSize(stat.Size())
 	}
 
 	if verbose {
@@ -140,7 +140,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 	var decryptFunc func() error
 	if decryptDirStreaming {
 		decryptFunc = func() error {
-			return crypto.DecryptFileStreaming(
+			return zjcrypto.DecryptFileStreaming(
 				decryptDirInput, tempZipPath,
 				hybridPriv.Kyber, hybridPriv.ECDH,
 				dilithiumPub,
@@ -149,7 +149,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 		}
 	} else {
 		decryptFunc = func() error {
-			return crypto.DecryptFile(
+			return zjcrypto.DecryptFile(
 				decryptDirInput, tempZipPath,
 				hybridPriv.Kyber, hybridPriv.ECDH,
 				dilithiumPub,
@@ -177,12 +177,12 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 	}
 
 	zipSize := len(zipData)
-	fileCount, _ := crypto.CountZipFiles(zipData)
+	fileCount, _ := zjcrypto.CountZipFiles(zipData)
 	fmt.Printf(i18n.T("archive.decrypted")+"\n", zipSize)
 
 	// [3/4] 解压ZIP
 	fmt.Printf("[3/4] %s ", i18n.T("progress.extracting"))
-	if err := crypto.ExtractZipToDirectory(zipData, decryptDirOutput); err != nil {
+	if err := zjcrypto.ExtractZipToDirectory(zipData, decryptDirOutput); err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("extract failed: %w",
 			i18n.TranslateError("error.extract_failed", err))

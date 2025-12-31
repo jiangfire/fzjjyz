@@ -1,4 +1,5 @@
 // Package utils provides utility functions.
+//nolint:revive // utils 在 internal 上下文中含义清晰
 package utils
 
 import (

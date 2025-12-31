@@ -62,6 +62,7 @@ linters:
     - godot              # 检查注释是否以句点结尾（规范注释，auto-fix）
     - makezero           # 检查切片非零初始长度（补充prealloc的内存优化）
     - copyloopvar        # 检查循环变量拷贝问题（Go常见坑，auto-fix）
+    - nolintlint
   disable: []  # 空数组，避免 null 报错
 
 # 输出配置（v2.x 仅保留 formatter）
@@ -71,8 +72,9 @@ output:
 # 问题排除规则（v2.x 中 exclude-rules 改名为 exclude）
 issues:
   exclude:
-    - path: _test\.go
+    - path: _test\.go$
       linters:
+        - gosec
         - funlen
         - gocyclo
         - lll
