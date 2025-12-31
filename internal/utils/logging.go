@@ -1,3 +1,4 @@
+// Package utils provides utility functions.
 package utils
 
 import (
@@ -6,7 +7,7 @@ import (
 	"sync"
 )
 
-// 日志器（安静原则：无用信息保持安静）
+// Logger provides logging capabilities with configurable verbosity.
 type Logger struct {
 	writer  io.Writer
 	silent  bool
@@ -14,10 +15,12 @@ type Logger struct {
 	mu      sync.Mutex
 }
 
+// NewLogger creates a new logger instance.
 func NewLogger(w io.Writer, silent, verbose bool) *Logger {
 	return &Logger{writer: w, silent: silent, verbose: verbose}
 }
 
+// Info logs an informational message.
 func (l *Logger) Info(format string, v ...interface{}) {
 	if l.silent {
 		return
@@ -25,6 +28,7 @@ func (l *Logger) Info(format string, v ...interface{}) {
 	l.log("INFO", format, v...)
 }
 
+// Debug logs a debug message.
 func (l *Logger) Debug(format string, v ...interface{}) {
 	if l.silent || !l.verbose {
 		return
@@ -39,5 +43,5 @@ func (l *Logger) Error(format string, v ...interface{}) {
 func (l *Logger) log(level, format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	fmt.Fprintf(l.writer, "[%s] %s\n", level, fmt.Sprintf(format, v...))
+	_, _ = fmt.Fprintf(l.writer, "[%s] %s\n", level, fmt.Sprintf(format, v...))
 }

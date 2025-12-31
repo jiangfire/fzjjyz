@@ -11,14 +11,18 @@ import (
 	"github.com/cloudflare/circl/kem"
 )
 
-// TestEncryptFile 测试完整文件加密流程
+// TestEncryptFile 测试完整文件加密流程.
 func TestEncryptFile(t *testing.T) {
 	// 创建临时目录
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 生成密钥对
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
@@ -65,13 +69,17 @@ func TestEncryptFile(t *testing.T) {
 	}
 }
 
-// TestEncryptEmptyFile 测试空文件加密
+// TestEncryptEmptyFile 测试空文件加密.
 func TestEncryptEmptyFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
@@ -108,13 +116,17 @@ func TestEncryptEmptyFile(t *testing.T) {
 	}
 }
 
-// TestEncryptLargeFile 测试大文件加密
+// TestEncryptLargeFile 测试大文件加密.
 func TestEncryptLargeFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
@@ -125,7 +137,9 @@ func TestEncryptLargeFile(t *testing.T) {
 
 	// 创建 100KB 测试数据
 	largeData := make([]byte, 100*1024)
-	rand.Read(largeData)
+	if _, err := rand.Read(largeData); err != nil {
+		t.Fatalf("生成随机数据失败: %v", err)
+	}
 
 	largeFile := filepath.Join(tmpDir, "large.bin")
 	if err := os.WriteFile(largeFile, largeData, 0644); err != nil {
@@ -154,13 +168,18 @@ func TestEncryptLargeFile(t *testing.T) {
 	}
 }
 
-// TestEncryptedFileFormat 测试加密文件格式
+// TestEncryptedFileFormat 测试加密文件格式.
+//nolint:funlen // 测试函数需要完整验证所有文件头字段
 func TestEncryptedFileFormat(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, _, _ := GenerateKyberKeys()
 	ecdhPub, _, _ := GenerateECDHKeys()
@@ -186,7 +205,11 @@ func TestEncryptedFileFormat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("打开加密文件失败: %v", err)
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Logf("警告: 关闭文件失败: %v", err)
+		}
+	}()
 
 	// 解析文件头
 	header, err := format.ParseFileHeader(f)
@@ -218,13 +241,17 @@ func TestEncryptedFileFormat(t *testing.T) {
 	}
 }
 
-// TestTamperedEncryptedFile 测试篡改加密文件检测
+// TestTamperedEncryptedFile 测试篡改加密文件检测.
 func TestTamperedEncryptedFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
@@ -271,13 +298,17 @@ func TestTamperedEncryptedFile(t *testing.T) {
 	}
 }
 
-// TestInvalidKeyDecrypt 测试使用错误密钥解密
+// TestInvalidKeyDecrypt 测试使用错误密钥解密.
 func TestInvalidKeyDecrypt(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	// 加密密钥
 	kyberPub1, _, _ := GenerateKyberKeys()
@@ -310,13 +341,17 @@ func TestInvalidKeyDecrypt(t *testing.T) {
 	}
 }
 
-// TestBinaryFile 测试二进制文件
+// TestBinaryFile 测试二进制文件.
 func TestBinaryFile(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
@@ -358,13 +393,17 @@ func TestBinaryFile(t *testing.T) {
 	}
 }
 
-// TestFileWithSpecialChars 测试特殊字符文件名
+// TestFileWithSpecialChars 测试特殊字符文件名.
 func TestFileWithSpecialChars(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
@@ -402,13 +441,17 @@ func TestFileWithSpecialChars(t *testing.T) {
 	}
 }
 
-// TestConcurrentEncrypt 测试并发加密
+// TestConcurrentEncrypt 测试并发加密.
 func TestConcurrentEncrypt(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, kyberPrivRaw, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
@@ -456,13 +499,17 @@ func TestConcurrentEncrypt(t *testing.T) {
 	}
 }
 
-// TestEncryptFileMetadata 测试加密后文件元数据
+// TestEncryptFileMetadata 测试加密后文件元数据.
 func TestEncryptFileMetadata(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
 
 	kyberPubRaw, _, _ := GenerateKyberKeys()
 	ecdhPub, _, _ := GenerateECDHKeys()

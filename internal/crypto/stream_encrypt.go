@@ -2,7 +2,6 @@ package crypto
 
 import (
 	"crypto/ecdh"
-	"io"
 
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 	"github.com/cloudflare/circl/kem"
@@ -23,7 +22,7 @@ type StreamingEncryptor struct {
 	pool          *BufferPool
 }
 
-// NewStreamingEncryptor 创建流式加密器
+// NewStreamingEncryptor 创建流式加密器.
 func NewStreamingEncryptor(
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
@@ -60,7 +59,7 @@ func NewStreamingEncryptor(
 }
 
 // EncryptFile 流式加密文件
-// 使用核心加密逻辑，支持缓冲区池优化
+// 使用核心加密逻辑，支持缓冲区池优化.
 func (se *StreamingEncryptor) EncryptFile(inputPath, outputPath string) error {
 	// 调用核心加密逻辑
 	header, ciphertext, err := EncryptFileCore(inputPath, se.kyberPub, se.ecdhPub, se.dilithiumPriv)
@@ -79,12 +78,4 @@ func (se *StreamingEncryptor) EncryptFile(inputPath, outputPath string) error {
 
 	// 写入加密文件
 	return writeEncryptedFile(outputPath, headerBytes, ciphertext)
-}
-
-// encryptData 实际的加密数据流（保留用于未来扩展）
-// 注意：AES-GCM 需要完整数据才能生成认证标签
-func (se *StreamingEncryptor) encryptData(input io.Reader, output io.Writer, sharedSecret []byte, nonce []byte) error {
-	// 由于 AES-GCM 的限制，这个函数目前仍然需要读取所有数据
-	// 保留此函数以便未来支持真正的流式加密（如 AES-CTR + HMAC）
-	return nil
 }

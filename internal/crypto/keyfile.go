@@ -14,44 +14,50 @@ import (
 	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
-// 缓存配置常量
+// 缓存配置常量.
 const (
-	// MaxCacheSize 缓存最大容量（密钥数量）
+	// MaxCacheSize 缓存最大容量（密钥数量）.
 	MaxCacheSize = 100
-	// DefaultCacheTTL 默认缓存过期时间（1小时）
+	// DefaultCacheTTL 默认缓存过期时间（1小时）.
 	DefaultCacheTTL = 1 * time.Hour
-	// CacheCleanupInterval 缓存清理间隔
+	// CacheCleanupInterval 缓存清理间隔.
 	CacheCleanupInterval = 5 * time.Minute
+	// windowsOS 操作系统名称常量，避免重复字符串。
+	windowsOS = "windows"
+	// keyFilePerm 私钥文件权限。
+	keyFilePerm = 0600
+	// pubKeyFilePerm 公钥文件权限。
+	pubKeyFilePerm = 0644
 )
 
-// keyCacheEntry 缓存条目，包含创建时间和TTL
+// keyCacheEntry 缓存条目，包含创建时间和TTL.
 type keyCacheEntry struct {
 	key       interface{}
 	createdAt time.Time
 	ttl       time.Duration
 }
 
-// keyCache 密钥缓存，使用 sync.Map 实现线程安全
+// keyCache 密钥缓存，使用 sync.Map 实现线程安全.
 var keyCache sync.Map
 
-// cacheCleanupTimer 定时清理器
-var cacheCleanupTimer *time.Timer
-
 // init 初始化缓存清理定时器
+//
+//nolint:gochecknoinits // init函数用于必要的包级初始化：启动后台缓存清理任务
 func init() {
 	startCacheCleanup()
 }
 
-// startCacheCleanup 启动后台缓存清理任务
+// startCacheCleanup 启动后台缓存清理任务.
 func startCacheCleanup() {
-	cacheCleanupTimer = time.AfterFunc(CacheCleanupInterval, func() {
+	// 使用匿名函数避免全局变量，定时器会自动重新调度
+	_ = time.AfterFunc(CacheCleanupInterval, func() {
 		cleanupExpiredKeys()
 		// 重新调度下一次清理
 		startCacheCleanup()
 	})
 }
 
-// cleanupExpiredKeys 清理过期的缓存条目
+// cleanupExpiredKeys 清理过期的缓存条目.
 func cleanupExpiredKeys() {
 	now := time.Now()
 	keyCache.Range(func(key, value interface{}) bool {
@@ -63,7 +69,7 @@ func cleanupExpiredKeys() {
 	})
 }
 
-// 保存密钥文件（遵循安全原则）
+// SaveKeyFiles 保存密钥文件（遵循安全原则）.
 func SaveKeyFiles(
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
@@ -84,64 +90,46 @@ func SaveKeyFiles(
 	}
 
 	// 保存公钥（默认权限）
-	if err := os.WriteFile(pubPath, pubPEM, 0644); err != nil {
-		return utils.NewCryptoError(
-			utils.ErrIOError,
-			"Failed to save public key",
-		)
+	if err := os.WriteFile(pubPath, pubPEM, pubKeyFilePerm); err != nil {
+		return fmt.Errorf("save public key: %w", err)
 	}
 
 	// 保存私钥（严格权限0600）
 	// 在 Windows 上，权限设置与 Unix 不同，需要特殊处理
-	if err := os.WriteFile(privPath, privPEM, 0600); err != nil {
-		return utils.NewCryptoError(
-			utils.ErrIOError,
-			"Failed to save private key",
-		)
+	if err := os.WriteFile(privPath, privPEM, keyFilePerm); err != nil {
+		return fmt.Errorf("save private key: %w", err)
 	}
 
 	// 在 Unix/Linux 系统上，确保私钥权限正确
-	if runtime.GOOS != "windows" {
-		if err := os.Chmod(privPath, 0600); err != nil {
-			return utils.NewCryptoError(
-				utils.ErrIOError,
-				"Failed to set private key permissions",
-			)
+	if runtime.GOOS != windowsOS {
+		if err := os.Chmod(privPath, keyFilePerm); err != nil {
+			return fmt.Errorf("set private key permissions: %w", err)
 		}
 	}
 
 	return nil
 }
 
-// 加载密钥文件
+// LoadKeyFiles 加载密钥文件.
 func LoadKeyFiles(pubPath, privPath string) (*HybridPublicKey, *HybridPrivateKey, error) {
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
-		return nil, nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Public key file not found or unreadable",
-		)
+		return nil, nil, fmt.Errorf("read public key file: %w", err)
 	}
 
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
-		return nil, nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Private key file not found or unreadable",
-		)
+		return nil, nil, fmt.Errorf("read private key file: %w", err)
 	}
 
 	return ImportKeys(pubPEM, privPEM)
 }
 
-// LoadPublicKey 只加载公钥文件
+// LoadPublicKey 只加载公钥文件.
 func LoadPublicKey(pubPath string) (*HybridPublicKey, error) {
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
-		return nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Public key file not found or unreadable",
-		)
+		return nil, fmt.Errorf("read public key file: %w", err)
 	}
 
 	// 只解析公钥部分
@@ -153,14 +141,11 @@ func LoadPublicKey(pubPath string) (*HybridPublicKey, error) {
 	return &HybridPublicKey{Kyber: pubKyber, ECDH: pubECDH}, nil
 }
 
-// LoadPrivateKey 只加载私钥文件
+// LoadPrivateKey 只加载私钥文件.
 func LoadPrivateKey(privPath string) (*HybridPrivateKey, error) {
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
-		return nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Private key file not found or unreadable",
-		)
+		return nil, fmt.Errorf("read private key file: %w", err)
 	}
 
 	// 只解析私钥部分
@@ -172,13 +157,13 @@ func LoadPrivateKey(privPath string) (*HybridPrivateKey, error) {
 	return &HybridPrivateKey{Kyber: privKyber, ECDH: privECDH}, nil
 }
 
-// DilithiumKeyPair 包含 Dilithium3 密钥对的 PEM 格式
+// DilithiumKeyPair 包含 Dilithium3 密钥对的 PEM 格式.
 type DilithiumKeyPair struct {
 	Public  []byte
 	Private []byte
 }
 
-// ExportDilithiumKeys 导出 Dilithium3 密钥对到 PEM 格式
+// ExportDilithiumKeys 导出 Dilithium3 密钥对到 PEM 格式.
 func ExportDilithiumKeys(pub interface{}, priv interface{}) (*DilithiumKeyPair, error) {
 	// 确保公钥是 Dilithium3 类型
 	pubKey, ok := pub.(*mode3.PublicKey)
@@ -218,7 +203,7 @@ func ExportDilithiumKeys(pub interface{}, priv interface{}) (*DilithiumKeyPair, 
 	}, nil
 }
 
-// ImportDilithiumKeys 从 PEM 格式导入 Dilithium3 密钥对
+// ImportDilithiumKeys 从 PEM 格式导入 Dilithium3 密钥对.
 func ImportDilithiumKeys(pubPEM, privPEM []byte) (interface{}, interface{}, error) {
 	// 解析公钥
 	pubBlock, _ := pem.Decode(pubPEM)
@@ -255,35 +240,26 @@ func ImportDilithiumKeys(pubPEM, privPEM []byte) (interface{}, interface{}, erro
 	return &pubKey, &privKey, nil
 }
 
-// LoadDilithiumKeys 从文件加载 Dilithium3 密钥对
+// LoadDilithiumKeys 从文件加载 Dilithium3 密钥对.
 func LoadDilithiumKeys(pubPath, privPath string) (interface{}, interface{}, error) {
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
-		return nil, nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Dilithium public key file not found or unreadable",
-		)
+		return nil, nil, fmt.Errorf("read Dilithium public key file: %w", err)
 	}
 
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
-		return nil, nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Dilithium private key file not found or unreadable",
-		)
+		return nil, nil, fmt.Errorf("read Dilithium private key file: %w", err)
 	}
 
 	return ImportDilithiumKeys(pubPEM, privPEM)
 }
 
-// LoadDilithiumPublicKey 只加载 Dilithium 公钥
+// LoadDilithiumPublicKey 只加载 Dilithium 公钥.
 func LoadDilithiumPublicKey(pubPath string) (interface{}, error) {
 	pubPEM, err := os.ReadFile(pubPath)
 	if err != nil {
-		return nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Dilithium public key file not found or unreadable",
-		)
+		return nil, fmt.Errorf("read Dilithium public key file: %w", err)
 	}
 
 	// 解析公钥
@@ -305,14 +281,11 @@ func LoadDilithiumPublicKey(pubPath string) (interface{}, error) {
 	return &pubKey, nil
 }
 
-// LoadDilithiumPrivateKey 只加载 Dilithium 私钥
+// LoadDilithiumPrivateKey 只加载 Dilithium 私钥.
 func LoadDilithiumPrivateKey(privPath string) (interface{}, error) {
 	privPEM, err := os.ReadFile(privPath)
 	if err != nil {
-		return nil, utils.NewCryptoError(
-			utils.ErrInvalidParameter,
-			"Dilithium private key file not found or unreadable",
-		)
+		return nil, fmt.Errorf("read Dilithium private key file: %w", err)
 	}
 
 	// 解析私钥
@@ -334,10 +307,10 @@ func LoadDilithiumPrivateKey(privPath string) (interface{}, error) {
 	return &privKey, nil
 }
 
-// checkCacheSize 检查缓存大小，如果超过限制则清理最旧的条目
+// checkCacheSize 检查缓存大小，如果超过限制则清理最旧的条目.
 func checkCacheSize() {
 	count := 0
-	keyCache.Range(func(key, value interface{}) bool {
+	keyCache.Range(func(_, _ interface{}) bool {
 		count++
 		return true
 	})
@@ -367,7 +340,7 @@ func checkCacheSize() {
 }
 
 // LoadPublicKeyCached 带缓存的公钥加载（支持TTL和大小限制）
-// 第一次加载时从文件读取并缓存，后续直接返回缓存结果
+// 第一次加载时从文件读取并缓存，后续直接返回缓存结果.
 func LoadPublicKeyCached(path string) (*HybridPublicKey, error) {
 	cacheKey := "pub:" + path
 	if cached, ok := keyCache.Load(cacheKey); ok {
@@ -395,7 +368,7 @@ func LoadPublicKeyCached(path string) (*HybridPublicKey, error) {
 	return key, nil
 }
 
-// LoadPrivateKeyCached 带缓存的私钥加载（支持TTL和大小限制）
+// LoadPrivateKeyCached 带缓存的私钥加载（支持TTL和大小限制）.
 func LoadPrivateKeyCached(path string) (*HybridPrivateKey, error) {
 	cacheKey := "priv:" + path
 	if cached, ok := keyCache.Load(cacheKey); ok {
@@ -421,7 +394,7 @@ func LoadPrivateKeyCached(path string) (*HybridPrivateKey, error) {
 	return key, nil
 }
 
-// LoadDilithiumPublicKeyCached 带缓存的 Dilithium 公钥加载（支持TTL和大小限制）
+// LoadDilithiumPublicKeyCached 带缓存的 Dilithium 公钥加载（支持TTL和大小限制）.
 func LoadDilithiumPublicKeyCached(path string) (interface{}, error) {
 	cacheKey := "dilithium_pub:" + path
 	if cached, ok := keyCache.Load(cacheKey); ok {
@@ -447,7 +420,7 @@ func LoadDilithiumPublicKeyCached(path string) (interface{}, error) {
 	return key, nil
 }
 
-// LoadDilithiumPrivateKeyCached 带缓存的 Dilithium 私钥加载（支持TTL和大小限制）
+// LoadDilithiumPrivateKeyCached 带缓存的 Dilithium 私钥加载（支持TTL和大小限制）.
 func LoadDilithiumPrivateKeyCached(path string) (interface{}, error) {
 	cacheKey := "dilithium_priv:" + path
 	if cached, ok := keyCache.Load(cacheKey); ok {
@@ -474,18 +447,18 @@ func LoadDilithiumPrivateKeyCached(path string) (interface{}, error) {
 }
 
 // ClearKeyCache 清空密钥缓存
-// 用于测试或手动清理缓存
+// 用于测试或手动清理缓存.
 func ClearKeyCache() {
-	keyCache.Range(func(key, value interface{}) bool {
+	keyCache.Range(func(key, _ interface{}) bool {
 		keyCache.Delete(key)
 		return true
 	})
 }
 
-// GetCacheSize 获取当前缓存的密钥数量
+// GetCacheSize 获取当前缓存的密钥数量.
 func GetCacheSize() int {
 	count := 0
-	keyCache.Range(func(key, value interface{}) bool {
+	keyCache.Range(func(_, _ interface{}) bool {
 		count++
 		return true
 	})
@@ -493,10 +466,10 @@ func GetCacheSize() int {
 }
 
 // GetCacheInfo 获取缓存详细信息
-// 返回：总条目数、已过期条目数、总大小（字节估算）
+// 返回：总条目数、已过期条目数、总大小（字节估算）.
 func GetCacheInfo() (total int, expired int, estimatedSize int) {
 	now := time.Now()
-	keyCache.Range(func(key, value interface{}) bool {
+	keyCache.Range(func(_, value interface{}) bool {
 		total++
 		entry := value.(*keyCacheEntry)
 		if now.Sub(entry.createdAt) >= entry.ttl {
@@ -509,7 +482,7 @@ func GetCacheInfo() (total int, expired int, estimatedSize int) {
 	return total, expired, estimatedSize
 }
 
-// SaveDilithiumKeys 保存 Dilithium3 密钥对到文件
+// SaveDilithiumKeys 保存 Dilithium3 密钥对到文件.
 func SaveDilithiumKeys(pub interface{}, priv interface{}, pubPath, privPath string) error {
 	keyPair, err := ExportDilithiumKeys(pub, priv)
 	if err != nil {
@@ -517,28 +490,19 @@ func SaveDilithiumKeys(pub interface{}, priv interface{}, pubPath, privPath stri
 	}
 
 	// 保存公钥
-	if err := os.WriteFile(pubPath, keyPair.Public, 0644); err != nil {
-		return utils.NewCryptoError(
-			utils.ErrIOError,
-			"Failed to save Dilithium public key",
-		)
+	if err := os.WriteFile(pubPath, keyPair.Public, pubKeyFilePerm); err != nil {
+		return fmt.Errorf("save Dilithium public key: %w", err)
 	}
 
 	// 保存私钥
-	if err := os.WriteFile(privPath, keyPair.Private, 0600); err != nil {
-		return utils.NewCryptoError(
-			utils.ErrIOError,
-			"Failed to save Dilithium private key",
-		)
+	if err := os.WriteFile(privPath, keyPair.Private, keyFilePerm); err != nil {
+		return fmt.Errorf("save Dilithium private key: %w", err)
 	}
 
 	// 在 Unix/Linux 系统上，确保私钥权限正确
-	if runtime.GOOS != "windows" {
-		if err := os.Chmod(privPath, 0600); err != nil {
-			return utils.NewCryptoError(
-				utils.ErrIOError,
-				"Failed to set Dilithium private key permissions",
-			)
+	if runtime.GOOS != windowsOS {
+		if err := os.Chmod(privPath, keyFilePerm); err != nil {
+			return fmt.Errorf("set Dilithium private key permissions: %w", err)
 		}
 	}
 

@@ -10,7 +10,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 )
 
-// BenchmarkEncryptFile 基准测试：文件加密性能
+// BenchmarkEncryptFile 基准测试：文件加密性能.
 func BenchmarkEncryptFile(b *testing.B) {
 	// 生成测试密钥
 	kyberPub, _, _ := GenerateKyberKeys()
@@ -40,7 +40,9 @@ func BenchmarkEncryptFile(b *testing.B) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			os.WriteFile(inputPath, data, 0644)
+			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+				b.Fatalf("Failed to write test file: %v", err)
+			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -50,7 +52,7 @@ func BenchmarkEncryptFile(b *testing.B) {
 	}
 }
 
-// BenchmarkDecryptFile 基准测试：文件解密性能
+// BenchmarkDecryptFile 基准测试：文件解密性能.
 func BenchmarkDecryptFile(b *testing.B) {
 	// 生成测试密钥
 	kyberPub, kyberPriv, _ := GenerateKyberKeys()
@@ -81,7 +83,9 @@ func BenchmarkDecryptFile(b *testing.B) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			os.WriteFile(inputPath, data, 0644)
+			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+				b.Fatalf("Failed to write test file: %v", err)
+			}
 			_ = EncryptFile(inputPath, encryptedPath, kyberPub, ecdhPub, dilithiumPriv)
 
 			b.ResetTimer()
@@ -92,7 +96,7 @@ func BenchmarkDecryptFile(b *testing.B) {
 	}
 }
 
-// BenchmarkStreamingEncrypt 基准测试：流式加密性能
+// BenchmarkStreamingEncrypt 基准测试：流式加密性能.
 func BenchmarkStreamingEncrypt(b *testing.B) {
 	kyberPub, _, _ := GenerateKyberKeys()
 	ecdhPub, _, _ := GenerateECDHKeys()
@@ -116,7 +120,9 @@ func BenchmarkStreamingEncrypt(b *testing.B) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			os.WriteFile(inputPath, data, 0644)
+			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+				b.Fatalf("Failed to write test file: %v", err)
+			}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -126,7 +132,7 @@ func BenchmarkStreamingEncrypt(b *testing.B) {
 	}
 }
 
-// BenchmarkKeyGeneration 基准测试：密钥生成性能
+// BenchmarkKeyGeneration 基准测试：密钥生成性能.
 func BenchmarkKeyGeneration(b *testing.B) {
 	b.Run("Kyber", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
@@ -153,7 +159,7 @@ func BenchmarkKeyGeneration(b *testing.B) {
 	})
 }
 
-// BenchmarkHeaderSerialization 基准测试：头部序列化性能
+// BenchmarkHeaderSerialization 基准测试：头部序列化性能.
 func BenchmarkHeaderSerialization(b *testing.B) {
 	// 创建测试头部
 	header := &format.FileHeader{
@@ -167,7 +173,7 @@ func BenchmarkHeaderSerialization(b *testing.B) {
 		SigLen:     2700,
 		Signature:  make([]byte, 2700),
 		SHA256Hash: [32]byte{},
-		Timestamp:  uint32(time.Now().Unix()),
+		Timestamp:  uint32(time.Now().Unix() & 0xFFFFFFFF),
 	}
 
 	b.Run("Standard", func(b *testing.B) {
@@ -183,7 +189,7 @@ func BenchmarkHeaderSerialization(b *testing.B) {
 	})
 }
 
-// BenchmarkCachePerformance 基准测试：缓存性能
+// BenchmarkCachePerformance 基准测试：缓存性能.
 func BenchmarkCachePerformance(b *testing.B) {
 	tmpDir := b.TempDir()
 	keyPath := filepath.Join(tmpDir, "test_key.pem")
@@ -191,7 +197,9 @@ func BenchmarkCachePerformance(b *testing.B) {
 	// 生成并保存测试密钥（需要完整密钥对）
 	pub, priv, _ := GenerateKyberKeys()
 	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
-	SaveKeyFiles(pub, ecdhPub, priv, ecdhPriv, keyPath+".pub", keyPath+".priv")
+	if err := SaveKeyFiles(pub, ecdhPub, priv, ecdhPriv, keyPath+".pub", keyPath+".priv"); err != nil {
+		b.Fatalf("Failed to save key files: %v", err)
+	}
 
 	b.Run("FirstLoad", func(b *testing.B) {
 		ClearKeyCache()
@@ -212,7 +220,8 @@ func BenchmarkCachePerformance(b *testing.B) {
 	})
 }
 
-// TestPerformanceComparison 性能对比测试
+// TestPerformanceComparison 性能对比测试.
+//nolint:funlen // 测试函数需要完整覆盖所有场景
 func TestPerformanceComparison(t *testing.T) {
 	// 生成密钥
 	kyberPub, kyberPriv, _ := GenerateKyberKeys()
@@ -234,7 +243,9 @@ func TestPerformanceComparison(t *testing.T) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			os.WriteFile(inputPath, data, 0644)
+			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+				t.Fatalf("Failed to write test file: %v", err)
+			}
 
 			// 测试标准加密
 			start := time.Now()
@@ -261,8 +272,14 @@ func TestPerformanceComparison(t *testing.T) {
 			decryptTime := time.Since(start)
 
 			// 验证结果
-			originalData, _ := os.ReadFile(inputPath)
-			decryptedData, _ := os.ReadFile(decryptedPath)
+			originalData, err := os.ReadFile(inputPath)
+			if err != nil {
+				t.Fatalf("Failed to read original file: %v", err)
+			}
+			decryptedData, err := os.ReadFile(decryptedPath)
+			if err != nil {
+				t.Fatalf("Failed to read decrypted file: %v", err)
+			}
 			if string(originalData) != string(decryptedData) {
 				t.Fatal("解密数据不匹配")
 			}
@@ -276,24 +293,24 @@ func TestPerformanceComparison(t *testing.T) {
 	}
 }
 
-// TestCacheTTL 测试缓存TTL功能
+// TestCacheTTL 测试缓存TTL功能.
 func TestCacheTTL(t *testing.T) {
 	t.Skip("SaveKeyFiles 需要非 nil 私钥，跳过完整测试")
 }
 
-// TestCacheSizeLimit 测试缓存大小限制
+// TestCacheSizeLimit 测试缓存大小限制.
 func TestCacheSizeLimit(t *testing.T) {
 	t.Skip("SaveKeyFiles 需要非 nil 私钥，跳过完整测试")
 }
 
-// TestCacheExpiration 测试缓存过期
+// TestCacheExpiration 测试缓存过期.
 func TestCacheExpiration(t *testing.T) {
 	// 注意: DefaultCacheTTL 是常量，无法直接修改
 	// 这里测试缓存的基本过期机制
 	t.Skip("TTL 是常量，需要重构为可配置变量才能测试")
 }
 
-// 辅助函数
+// 辅助函数.
 func getFileSize(path string) int64 {
 	info, err := os.Stat(path)
 	if err != nil {

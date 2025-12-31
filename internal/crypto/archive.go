@@ -1,8 +1,10 @@
+// Package crypto 提供文件加密、解密和归档处理功能
 package crypto
 
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,14 +13,21 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 )
 
-// ArchiveOptions 打包选项
+const (
+	// maxTotalSize 限制解压总大小，防止解压缩炸弹（1GB）。
+	maxTotalSize = 1024 * 1024 * 1024
+	// dirPerm 使用更安全的目录权限。
+	dirPerm = 0750
+)
+
+// ArchiveOptions 打包选项.
 type ArchiveOptions struct {
 	IncludePatterns []string // 包含的文件模式（glob）
 	ExcludePatterns []string // 排除的文件模式（glob）
 	FollowSymlinks  bool     // 是否跟随符号链接
 }
 
-// DefaultArchiveOptions 默认打包选项
+// DefaultArchiveOptions 默认打包选项.
 var DefaultArchiveOptions = ArchiveOptions{
 	IncludePatterns: []string{"**/*"},
 	ExcludePatterns: []string{},
@@ -28,6 +37,8 @@ var DefaultArchiveOptions = ArchiveOptions{
 // CreateZipFromDirectory 将目录打包成ZIP
 // 输入: 源目录路径, 输出缓冲区, 打包选项
 // 返回: 错误
+//
+//nolint:gocognit,funlen // 目录遍历和ZIP打包逻辑复杂且需要完整处理所有文件类型和路径转换
 func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOptions) error {
 	// 确保源目录存在
 	info, err := os.Stat(sourceDir)
@@ -55,13 +66,13 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 	// 获取源目录的绝对路径（用于计算相对路径）
 	absSource, err := filepath.Abs(sourceDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
 	// 递归遍历目录
 	return filepath.Walk(absSource, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
-			return walkErr
+			return fmt.Errorf("walk error at %s: %w", path, walkErr)
 		}
 
 		// 跳过目录本身（只处理内容）
@@ -77,19 +88,19 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 			// 读取链接目标
 			target, err := os.Readlink(path)
 			if err != nil {
-				return err
+				return fmt.Errorf("readlink %s: %w", path, err)
 			}
 			// 获取目标信息
 			info, err = os.Stat(target)
 			if err != nil {
-				return err
+				return fmt.Errorf("stat symlink target %s: %w", target, err)
 			}
 		}
 
 		// 计算在ZIP中的相对路径
 		relPath, err := filepath.Rel(absSource, path)
 		if err != nil {
-			return err
+			return fmt.Errorf("get relative path: %w", err)
 		}
 
 		// 转换为ZIP路径格式（使用正斜杠）
@@ -102,19 +113,22 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 				zipPath += "/"
 			}
 			_, err := zipWriter.Create(zipPath)
-			return err
+			if err != nil {
+				return fmt.Errorf("create zip dir entry: %w", err)
+			}
+			return nil
 		}
 
 		// 处理文件
 		header, err := zipWriter.Create(zipPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("create zip file entry: %w", err)
 		}
 
 		// 复制文件内容
 		file, err := os.Open(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("open file %s: %w", path, err)
 		}
 		defer func() {
 			if closeErr := file.Close(); closeErr != nil && err == nil {
@@ -123,30 +137,40 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 		}()
 
 		_, err = io.Copy(header, file)
-		return err
+		if err != nil {
+			return fmt.Errorf("copy file content: %w", err)
+		}
+		return nil
 	})
 }
 
 // ExtractZipToDirectory 将ZIP解压到目录
 // 输入: ZIP数据, 目标目录路径
 // 返回: 错误
+//
+//nolint:funlen,gocognit // 解压逻辑需要完整处理路径验证、目录创建和文件写入，复杂度较高
 func ExtractZipToDirectory(zipData []byte, targetDir string) error {
-	// 创建目标目录
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	// 检查ZIP数据大小，防止解压缩炸弹
+	if int64(len(zipData)) > maxTotalSize {
 		return utils.NewCryptoError(
-			utils.ErrIOError,
-			"Failed to create target directory: "+err.Error(),
+			utils.ErrInvalidParameter,
+			fmt.Sprintf("ZIP data too large: %d bytes (max: %d)", len(zipData), maxTotalSize),
 		)
+	}
+
+	// 创建目标目录 - 使用更安全的权限
+	if err := os.MkdirAll(targetDir, dirPerm); err != nil {
+		return fmt.Errorf("create target directory: %w", err)
 	}
 
 	// 创建ZIP读取器
 	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
 	if err != nil {
-		return utils.NewCryptoError(
-			utils.ErrInvalidFormat,
-			"Invalid ZIP format: "+err.Error(),
-		)
+		return fmt.Errorf("invalid ZIP format: %w", err)
 	}
+
+	// 计算总大小用于防炸弹
+	var totalSize int64
 
 	// 遍历ZIP中的所有文件
 	for _, file := range reader.File {
@@ -161,9 +185,15 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		// 构建完整的目标路径
 		targetPath := filepath.Join(targetDir, file.Name)
 
-		// 再次验证最终路径
-		absTarget, _ := filepath.Abs(targetPath)
-		absDir, _ := filepath.Abs(targetDir)
+		// 再次验证最终路径 - 防止路径遍历
+		absTarget, err := filepath.Abs(targetPath)
+		if err != nil {
+			return fmt.Errorf("get absolute target path: %w", err)
+		}
+		absDir, err := filepath.Abs(targetDir)
+		if err != nil {
+			return fmt.Errorf("get absolute dir path: %w", err)
+		}
 		if !strings.HasPrefix(absTarget, absDir) {
 			return utils.NewCryptoError(
 				utils.ErrInvalidParameter,
@@ -171,23 +201,32 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 			)
 		}
 
+		// 累加大小检查（防止解压缩炸弹）
+		totalSize += int64(file.UncompressedSize64)
+		if totalSize > maxTotalSize {
+			return utils.NewCryptoError(
+				utils.ErrInvalidParameter,
+				fmt.Sprintf("Total uncompressed size exceeds limit: %d bytes", totalSize),
+			)
+		}
+
 		// 处理目录
 		if file.FileInfo().IsDir() {
-			if err := os.MkdirAll(targetPath, 0755); err != nil {
-				return err
+			if err := os.MkdirAll(targetPath, dirPerm); err != nil {
+				return fmt.Errorf("create directory %s: %w", targetPath, err)
 			}
 			continue
 		}
 
 		// 确保父目录存在
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return err
+		if err := os.MkdirAll(filepath.Dir(targetPath), dirPerm); err != nil {
+			return fmt.Errorf("create parent dir for %s: %w", targetPath, err)
 		}
 
 		// 打开ZIP中的文件
 		srcFile, err := file.Open()
 		if err != nil {
-			return err
+			return fmt.Errorf("open zip entry %s: %w", file.Name, err)
 		}
 		defer func() {
 			if closeErr := srcFile.Close(); closeErr != nil && err == nil {
@@ -195,10 +234,10 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 			}
 		}()
 
-		// 创建目标文件
+		// 创建目标文件 - 使用文件原始权限
 		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, file.Mode())
 		if err != nil {
-			return err
+			return fmt.Errorf("create output file %s: %w", targetPath, err)
 		}
 		defer func() {
 			if closeErr := dstFile.Close(); closeErr != nil && err == nil {
@@ -208,33 +247,36 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 
 		// 复制内容
 		if _, err := io.Copy(dstFile, srcFile); err != nil {
-			return err
+			return fmt.Errorf("copy content to %s: %w", targetPath, err)
 		}
 	}
 
 	return nil
 }
 
-// GetZipSize 计算ZIP数据的总大小（用于进度条）
+// GetZipSize 计算ZIP数据的总大小（用于进度条）.
 func GetZipSize(zipData []byte) (int64, error) {
 	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("create ZIP reader: %w", err)
 	}
 
 	var totalSize int64
 	for _, file := range reader.File {
+		// G115: 显式转换，注意潜在的溢出
+		// file.UncompressedSize64 是 uint64，转换为 int64
+		// 如果文件超过 2^63-1 字节，会溢出，但这是合理的限制
 		totalSize += int64(file.UncompressedSize64)
 	}
 
 	return totalSize, nil
 }
 
-// CountZipFiles 统计ZIP中的文件数量
+// CountZipFiles 统计ZIP中的文件数量.
 func CountZipFiles(zipData []byte) (int, error) {
 	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("create ZIP reader: %w", err)
 	}
 	return len(reader.File), nil
 }

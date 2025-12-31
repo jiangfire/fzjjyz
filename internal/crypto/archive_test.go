@@ -8,23 +8,42 @@ import (
 	"testing"
 )
 
-// TestCreateZipFromDirectory 测试目录打包成ZIP
+// TestCreateZipFromDirectory 测试目录打包成ZIP.
 func TestCreateZipFromDirectory(t *testing.T) {
 	// 创建临时测试目录
 	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// 创建测试文件结构
 	testDir := filepath.Join(tmpDir, "source")
-	os.MkdirAll(testDir, 0755)
-	os.WriteFile(filepath.Join(testDir, "file1.txt"), []byte("content1"), 0644)
-	os.WriteFile(filepath.Join(testDir, "file2.txt"), []byte("content2"), 0644)
+	//nolint:gosec // 测试目录使用宽松权限
+	if err := os.MkdirAll(testDir, 0755); err != nil {
+		t.Fatalf("Failed to create test dir: %v", err)
+	}
+	//nolint:gosec // 测试文件使用标准权限
+	if err := os.WriteFile(filepath.Join(testDir, "file1.txt"), []byte("content1"), 0644); err != nil {
+		t.Fatalf("Failed to write file1: %v", err)
+	}
+	//nolint:gosec // 测试文件使用标准权限
+	if err := os.WriteFile(filepath.Join(testDir, "file2.txt"), []byte("content2"), 0644); err != nil {
+		t.Fatalf("Failed to write file2: %v", err)
+	}
 	subDir := filepath.Join(testDir, "sub")
-	os.MkdirAll(subDir, 0755)
-	os.WriteFile(filepath.Join(subDir, "file3.txt"), []byte("content3"), 0644)
+	//nolint:gosec // 测试目录使用宽松权限
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create subdir: %v", err)
+	}
+	//nolint:gosec // 测试文件使用标准权限
+	if err := os.WriteFile(filepath.Join(subDir, "file3.txt"), []byte("content3"), 0644); err != nil {
+		t.Fatalf("Failed to write file3: %v", err)
+	}
 
 	// 打包
 	var buf bytes.Buffer
@@ -50,7 +69,7 @@ func TestCreateZipFromDirectory(t *testing.T) {
 	}
 }
 
-// TestCreateZipFromDirectoryNotFound 测试源目录不存在
+// TestCreateZipFromDirectoryNotFound 测试源目录不存在.
 func TestCreateZipFromDirectoryNotFound(t *testing.T) {
 	var buf bytes.Buffer
 	err := CreateZipFromDirectory("/nonexistent/path", &buf, DefaultArchiveOptions)
@@ -59,16 +78,24 @@ func TestCreateZipFromDirectoryNotFound(t *testing.T) {
 	}
 }
 
-// TestCreateZipFromDirectoryNotDir 测试源路径不是目录
+// TestCreateZipFromDirectoryNotDir 测试源路径不是目录.
 func TestCreateZipFromDirectoryNotDir(t *testing.T) {
 	// 创建临时文件
 	tmpFile, err := os.CreateTemp("", "testfile_*")
 	if err != nil {
 		t.Fatalf("创建临时文件失败: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	tmpFile.WriteString("test")
-	tmpFile.Close()
+	defer func() {
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			t.Logf("Warning: failed to remove temp file: %v", err)
+		}
+	}()
+	if _, err := tmpFile.WriteString("test"); err != nil {
+		t.Fatalf("Failed to write: %v", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		t.Fatalf("Failed to close: %v", err)
+	}
 
 	var buf bytes.Buffer
 	err = CreateZipFromDirectory(tmpFile.Name(), &buf, DefaultArchiveOptions)
@@ -77,19 +104,27 @@ func TestCreateZipFromDirectoryNotDir(t *testing.T) {
 	}
 }
 
-// TestExtractZipToDirectory 测试ZIP解压到目录
+// TestExtractZipToDirectory 测试ZIP解压到目录.
 func TestExtractZipToDirectory(t *testing.T) {
 	// 先创建一个ZIP
 	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// 创建源目录
 	sourceDir := filepath.Join(tmpDir, "source")
-	os.MkdirAll(sourceDir, 0755)
-	os.WriteFile(filepath.Join(sourceDir, "test.txt"), []byte("test content"), 0644)
+	if err := os.MkdirAll(sourceDir, 0755); err != nil {
+		t.Fatalf("Failed to create source dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "test.txt"), []byte("test content"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
 
 	// 打包
 	var zipBuf bytes.Buffer
@@ -117,39 +152,64 @@ func TestExtractZipToDirectory(t *testing.T) {
 	}
 }
 
-// TestExtractZipToDirectoryPathTraversal 测试路径遍历攻击防护
+// TestExtractZipToDirectoryPathTraversal 测试路径遍历攻击防护.
 func TestExtractZipToDirectoryPathTraversal(t *testing.T) {
 	// 创建恶意ZIP（包含 .. 路径）
 	var maliciousZip bytes.Buffer
 	writer := zip.NewWriter(&maliciousZip)
 
 	// 尝试写入到父目录
-	header, _ := writer.Create("../../etc/passwd")
-	header.Write([]byte("malicious"))
-	writer.Close()
+	header, err := writer.Create("../../etc/passwd")
+	if err != nil {
+		t.Fatalf("Failed to create header: %v", err)
+	}
+	if _, err := header.Write([]byte("malicious")); err != nil {
+		t.Fatalf("Failed to write header: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("Failed to close writer: %v", err)
+	}
 
 	// 尝试解压
-	targetDir, _ := os.MkdirTemp("", "fzjjyz_test_*")
-	defer os.RemoveAll(targetDir)
+	targetDir, err := os.MkdirTemp("", "fzjjyz_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(targetDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
-	err := ExtractZipToDirectory(maliciousZip.Bytes(), filepath.Join(targetDir, "output"))
+	err = ExtractZipToDirectory(maliciousZip.Bytes(), filepath.Join(targetDir, "output"))
 	if err == nil {
 		t.Error("路径遍历攻击应该被阻止")
 	}
 }
 
-// TestGetZipSize 测试计算ZIP大小
+// TestGetZipSize 测试计算ZIP大小.
 func TestGetZipSize(t *testing.T) {
 	// 创建测试目录
-	tmpDir, _ := os.MkdirTemp("", "fzjjyz_test_*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	testDir := filepath.Join(tmpDir, "source")
-	os.MkdirAll(testDir, 0755)
-	os.WriteFile(filepath.Join(testDir, "file.txt"), []byte("12345"), 0644)
+	if err := os.MkdirAll(testDir, 0755); err != nil {
+		t.Fatalf("Failed to create test dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(testDir, "file.txt"), []byte("12345"), 0644); err != nil {
+		t.Fatalf("Failed to write file: %v", err)
+	}
 
 	var buf bytes.Buffer
-	err := CreateZipFromDirectory(testDir, &buf, DefaultArchiveOptions)
+	err = CreateZipFromDirectory(testDir, &buf, DefaultArchiveOptions)
 	if err != nil {
 		t.Fatalf("打包失败: %v", err)
 	}
@@ -164,21 +224,38 @@ func TestGetZipSize(t *testing.T) {
 	}
 }
 
-// TestCountZipFiles 测试统计ZIP文件数量
+// TestCountZipFiles 测试统计ZIP文件数量.
 func TestCountZipFiles(t *testing.T) {
 	// 创建测试目录
-	tmpDir, _ := os.MkdirTemp("", "fzjjyz_test_*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	testDir := filepath.Join(tmpDir, "source")
-	os.MkdirAll(testDir, 0755)
-	os.WriteFile(filepath.Join(testDir, "file1.txt"), []byte("1"), 0644)
-	os.WriteFile(filepath.Join(testDir, "file2.txt"), []byte("2"), 0644)
-	os.MkdirAll(filepath.Join(testDir, "sub"), 0755)
-	os.WriteFile(filepath.Join(testDir, "sub", "file3.txt"), []byte("3"), 0644)
+	if err := os.MkdirAll(testDir, 0755); err != nil {
+		t.Fatalf("Failed to create test dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(testDir, "file1.txt"), []byte("1"), 0644); err != nil {
+		t.Fatalf("Failed to write file1: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(testDir, "file2.txt"), []byte("2"), 0644); err != nil {
+		t.Fatalf("Failed to write file2: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(testDir, "sub"), 0755); err != nil {
+		t.Fatalf("Failed to create subdir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(testDir, "sub", "file3.txt"), []byte("3"), 0644); err != nil {
+		t.Fatalf("Failed to write file3: %v", err)
+	}
 
 	var buf bytes.Buffer
-	err := CreateZipFromDirectory(testDir, &buf, DefaultArchiveOptions)
+	err = CreateZipFromDirectory(testDir, &buf, DefaultArchiveOptions)
 	if err != nil {
 		t.Fatalf("打包失败: %v", err)
 	}
@@ -194,17 +271,26 @@ func TestCountZipFiles(t *testing.T) {
 	}
 }
 
-// TestExtractEmptyZip 测试解压空ZIP
+// TestExtractEmptyZip 测试解压空ZIP.
 func TestExtractEmptyZip(t *testing.T) {
 	// 创建空目录并打包
-	tmpDir, _ := os.MkdirTemp("", "fzjjyz_test_*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	emptyDir := filepath.Join(tmpDir, "empty")
-	os.MkdirAll(emptyDir, 0755)
+	if err := os.MkdirAll(emptyDir, 0755); err != nil {
+		t.Fatalf("Failed to create empty dir: %v", err)
+	}
 
 	var buf bytes.Buffer
-	err := CreateZipFromDirectory(emptyDir, &buf, DefaultArchiveOptions)
+	err = CreateZipFromDirectory(emptyDir, &buf, DefaultArchiveOptions)
 	if err != nil {
 		t.Fatalf("打包空目录失败: %v", err)
 	}
@@ -222,17 +308,28 @@ func TestExtractEmptyZip(t *testing.T) {
 	}
 }
 
-// TestCreateZipWithSubdirectories 测试包含子目录的打包
+// TestCreateZipWithSubdirectories 测试包含子目录的打包.
 func TestCreateZipWithSubdirectories(t *testing.T) {
-	tmpDir, _ := os.MkdirTemp("", "fzjjyz_test_*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	testDir := filepath.Join(tmpDir, "source")
-	os.MkdirAll(filepath.Join(testDir, "a", "b", "c"), 0755)
-	os.WriteFile(filepath.Join(testDir, "a", "b", "c", "deep.txt"), []byte("deep"), 0644)
+	if err := os.MkdirAll(filepath.Join(testDir, "a", "b", "c"), 0755); err != nil {
+		t.Fatalf("Failed to create nested dirs: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(testDir, "a", "b", "c", "deep.txt"), []byte("deep"), 0644); err != nil {
+		t.Fatalf("Failed to write deep file: %v", err)
+	}
 
 	var buf bytes.Buffer
-	err := CreateZipFromDirectory(testDir, &buf, DefaultArchiveOptions)
+	err = CreateZipFromDirectory(testDir, &buf, DefaultArchiveOptions)
 	if err != nil {
 		t.Fatalf("打包失败: %v", err)
 	}
@@ -257,21 +354,36 @@ func TestCreateZipWithSubdirectories(t *testing.T) {
 	}
 }
 
-// TestExtractZipWithDirectories 测试解压包含目录的ZIP
+// TestExtractZipWithDirectories 测试解压包含目录的ZIP.
 func TestExtractZipWithDirectories(t *testing.T) {
-	tmpDir, _ := os.MkdirTemp("", "fzjjyz_test_*")
-	defer os.RemoveAll(tmpDir)
+	tmpDir, err := os.MkdirTemp("", "fzjjyz_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
 
 	// 创建带目录结构的源
 	sourceDir := filepath.Join(tmpDir, "source")
-	os.MkdirAll(filepath.Join(sourceDir, "dir1", "dir2"), 0755)
-	os.WriteFile(filepath.Join(sourceDir, "root.txt"), []byte("root"), 0644)
-	os.WriteFile(filepath.Join(sourceDir, "dir1", "file1.txt"), []byte("file1"), 0644)
-	os.WriteFile(filepath.Join(sourceDir, "dir1", "dir2", "file2.txt"), []byte("file2"), 0644)
+	if err := os.MkdirAll(filepath.Join(sourceDir, "dir1", "dir2"), 0755); err != nil {
+		t.Fatalf("Failed to create source dirs: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "root.txt"), []byte("root"), 0644); err != nil {
+		t.Fatalf("Failed to write root.txt: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "dir1", "file1.txt"), []byte("file1"), 0644); err != nil {
+		t.Fatalf("Failed to write file1.txt: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceDir, "dir1", "dir2", "file2.txt"), []byte("file2"), 0644); err != nil {
+		t.Fatalf("Failed to write file2.txt: %v", err)
+	}
 
 	// 打包
 	var zipBuf bytes.Buffer
-	err := CreateZipFromDirectory(sourceDir, &zipBuf, DefaultArchiveOptions)
+	err = CreateZipFromDirectory(sourceDir, &zipBuf, DefaultArchiveOptions)
 	if err != nil {
 		t.Fatalf("打包失败: %v", err)
 	}

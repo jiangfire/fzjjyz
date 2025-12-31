@@ -18,8 +18,13 @@ import (
 // 4. 计算 SHA256 哈希
 // 5. Dilithium3 签名
 // 6. 构建并序列化文件头
-// 7. 写入 [头部] + [密文]
-func EncryptFile(inputPath, outputPath string, kyberPub kem.PublicKey, ecdhPub *ecdh.PublicKey, dilithiumPriv interface{}) error {
+// 7. 写入 [头部] + [密文].
+func EncryptFile(
+	inputPath, outputPath string,
+	kyberPub kem.PublicKey,
+	ecdhPub *ecdh.PublicKey,
+	dilithiumPriv interface{},
+) error {
 	// 调用核心加密逻辑
 	header, ciphertext, err := EncryptFileCore(inputPath, kyberPub, ecdhPub, dilithiumPriv)
 	if err != nil {
@@ -50,8 +55,13 @@ func EncryptFile(inputPath, outputPath string, kyberPub kem.PublicKey, ecdhPub *
 // 4. AES-256-GCM 解密
 // 5. 验证 SHA256 哈希
 // 6. 验证 Dilithium3 签名
-// 7. 写入解密文件
-func DecryptFile(inputPath, outputPath string, kyberPriv kem.PrivateKey, ecdhPriv *ecdh.PrivateKey, dilithiumPub interface{}) error {
+// 7. 写入解密文件.
+func DecryptFile(
+	inputPath, outputPath string,
+	kyberPriv kem.PrivateKey,
+	ecdhPriv *ecdh.PrivateKey,
+	dilithiumPub interface{},
+) error {
 	// 调用核心解密逻辑
 	plaintext, err := DecryptFileCore(inputPath, kyberPriv, ecdhPriv, dilithiumPub)
 	if err != nil {
