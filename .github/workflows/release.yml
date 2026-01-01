@@ -94,6 +94,7 @@ jobs:
 
       - name: Get version info
         id: version
+        shell: bash
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
           if [[ "$VERSION" == "v"* ]]; then
@@ -111,6 +112,7 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
         run: |
           mkdir -p dist
           OUTPUT="dist/${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch }}"
@@ -158,6 +160,7 @@ jobs:
 
       - name: Prepare release assets
         id: prepare
+        shell: bash
         run: |
           # 获取版本
           VERSION=${GITHUB_REF#refs/tags/}
@@ -199,6 +202,7 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
+        shell: bash
         run: |
           # 检查是否有 RELEASE_NOTES.md
           if [ -f "RELEASE_NOTES.md" ]; then
@@ -262,6 +266,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release Summary
+        shell: bash
         run: |
           echo "## 发布完成 ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

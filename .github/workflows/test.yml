@@ -38,6 +38,7 @@ jobs:
         run: go test ./... -cover -v
 
       - name: Run go fmt check
+        shell: bash
         run: |
           go fmt ./...
           git diff --exit-code || echo "::warning::Code formatting issues found"
@@ -46,10 +47,22 @@ jobs:
         run: go build -o fzj ./cmd/fzjjyz
 
       - name: Run help
-        run: ./fzj --help
+        shell: bash
+        run: |
+          if [ -f ./fzj.exe ]; then
+            ./fzj.exe --help
+          else
+            ./fzj --help
+          fi
 
       - name: Run version
-        run: ./fzj version
+        shell: bash
+        run: |
+          if [ -f ./fzj.exe ]; then
+            ./fzj.exe version
+          else
+            ./fzj version
+          fi
 
   cross-compile:
     name: Cross-compile
