@@ -35,13 +35,13 @@ jobs:
       - name: Build binaries
         run: |
           # Linux
-          GOOS=linux GOARCH=amd64 go build -o fzj_linux_amd64 ./cmd/fzj
+          GOOS=linux GOARCH=amd64 go build -o fzj_linux_amd64 ./cmd/fzjjyz
           # Windows
-          GOOS=windows GOARCH=amd64 go build -o fzj_windows_amd64.exe ./cmd/fzj
+          GOOS=windows GOARCH=amd64 go build -o fzj_windows_amd64.exe ./cmd/fzjjyz
           # macOS Intel
-          GOOS=darwin GOARCH=amd64 go build -o fzj_darwin_amd64 ./cmd/fzj
+          GOOS=darwin GOARCH=amd64 go build -o fzj_darwin_amd64 ./cmd/fzjjyz
           # macOS Apple Silicon
-          GOOS=darwin GOARCH=arm64 go build -o fzj_darwin_arm64 ./cmd/fzj
+          GOOS=darwin GOARCH=arm64 go build -o fzj_darwin_arm64 ./cmd/fzjjyz
 
       - name: Generate checksums
         run: |

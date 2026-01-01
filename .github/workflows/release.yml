@@ -35,7 +35,7 @@ jobs:
 
       - name: Install golangci-lint
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.1.6
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Run tests
@@ -46,11 +46,11 @@ jobs:
         run: golangci-lint run --timeout 5m
 
       - name: Build check
-        run: go build -o /dev/null ./cmd/fzj
+        run: go build -o /dev/null ./cmd/fzjjyz
 
       - name: Test binary
         run: |
-          go build -o fzj-test ./cmd/fzj
+          go build -o fzj-test ./cmd/fzjjyz
           ./fzj-test version
           ./fzj-test --help
           rm fzj-test
@@ -121,7 +121,7 @@ jobs:
           fi
 
           go build -ldflags "-s -w -X main.Version=$VERSION -X main.BuildTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ") -X main.GitCommit=${{ github.sha }}" \
-            -o "$OUTPUT" ./cmd/fzj
+            -o "$OUTPUT" ./cmd/fzjjyz
 
           chmod +x "$OUTPUT"
           echo "Built: $OUTPUT"
@@ -295,7 +295,7 @@ jobs:
         run: |
           VERSION=${{ github.event.inputs.version || 'manual' }}
           mkdir -p dist
-          go build -ldflags "-s -w -X main.Version=$VERSION" -o dist/${{ env.PROJECT_NAME }} ./cmd/fzj
+          go build -ldflags "-s -w -X main.Version=$VERSION" -o dist/${{ env.PROJECT_NAME }} ./cmd/fzjjyz
           chmod +x dist/${{ env.PROJECT_NAME }}
           ls -lh dist/
           ./dist/${{ env.PROJECT_NAME }} version
