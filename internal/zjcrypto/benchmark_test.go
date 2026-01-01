@@ -221,7 +221,6 @@ func BenchmarkCachePerformance(b *testing.B) {
 }
 
 // TestPerformanceComparison 性能对比测试.
-//
 func TestPerformanceComparison(t *testing.T) {
 	// 生成密钥
 	kyberPub, kyberPriv, _ := GenerateKyberKeys()

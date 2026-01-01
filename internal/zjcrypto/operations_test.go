@@ -159,7 +159,6 @@ func TestEncryptLargeFile(t *testing.T) {
 }
 
 // TestEncryptedFileFormat 测试加密文件格式.
-//
 func TestEncryptedFileFormat(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
