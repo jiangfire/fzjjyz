@@ -1,6 +1,6 @@
 # 性能文档
 
-本文档描述 fzjjyz 的性能特征、基准测试结果和优化策略。
+本文档描述 fzj 的性能特征、基准测试结果和优化策略。
 
 ## 📊 性能基准
 
@@ -100,10 +100,10 @@
 
 ```bash
 # 自动选择最优缓冲区大小
-fzjjyz encrypt -i large.bin -o large.fzj -p pub.pem -s priv.pem
+fzj encrypt -i large.bin -o large.fzj -p pub.pem -s priv.pem
 
 # 手动指定（适用于特殊场景）
-fzjjyz encrypt -i large.bin -o large.fzj -p pub.pem -s priv.pem --buffer-size 1024
+fzj encrypt -i large.bin -o large.fzj -p pub.pem -s priv.pem --buffer-size 1024
 ```
 
 **缓冲区大小策略**:
@@ -162,9 +162,9 @@ BenchmarkCachePerformance/Cached-8 1000       1234 ns/op        0 B/op    0 allo
 **解决方案**:
 ```bash
 # 使用缓存，密钥只加载一次
-fzjjyz encrypt -i file1.txt -o file1.fzj -p pub.pem -s priv.pem
-fzjjyz encrypt -i file2.txt -o file2.fzj -p pub.pem -s priv.pem  # 快速
-fzjjyz encrypt -i file3.txt -o file3.fzj -p pub.pem -s priv.pem  # 快速
+fzj encrypt -i file1.txt -o file1.fzj -p pub.pem -s priv.pem
+fzj encrypt -i file2.txt -o file2.fzj -p pub.pem -s priv.pem  # 快速
+fzj encrypt -i file3.txt -o file3.fzj -p pub.pem -s priv.pem  # 快速
 ```
 
 **效果**: 第二个文件开始速度提升 1000x
@@ -176,10 +176,10 @@ fzjjyz encrypt -i file3.txt -o file3.fzj -p pub.pem -s priv.pem  # 快速
 **解决方案**:
 ```bash
 # 增加缓冲区大小（减少内存碎片）
-fzjjyz encrypt -i huge.bin -o huge.fzj -p pub.pem -s priv.pem --buffer-size 4096
+fzj encrypt -i huge.bin -o huge.fzj -p pub.pem -s priv.pem --buffer-size 4096
 
 # 或使用标准模式（内存占用略低）
-fzjjyz encrypt -i huge.bin -o huge.fzj -p pub.pem -s priv.pem --streaming=false
+fzj encrypt -i huge.bin -o huge.fzj -p pub.pem -s priv.pem --streaming=false
 ```
 
 **效果**: 内存占用减少 20-30%
@@ -191,11 +191,11 @@ fzjjyz encrypt -i huge.bin -o huge.fzj -p pub.pem -s priv.pem --streaming=false
 **解决方案**:
 ```bash
 # 预热缓存
-fzjjyz keymanage -a preload -p pub.pem -s priv.pem
+fzj keymanage -a preload -p pub.pem -s priv.pem
 
 # 批量加密
 for file in *.txt; do
-  fzjjyz encrypt -i "$file" -o "${file%.txt}.fzj" -p pub.pem -s priv.pem
+  fzj encrypt -i "$file" -o "${file%.txt}.fzj" -p pub.pem -s priv.pem
 done
 ```
 
@@ -207,7 +207,7 @@ done
 
 ```bash
 # 查看缓存信息（需要实现 CLI 命令）
-fzjjyz keymanage -a cache-info
+fzj keymanage -a cache-info
 ```
 
 输出示例：
@@ -327,7 +327,7 @@ CPU: 78%
 **解决**:
 ```bash
 # 启用详细输出
-fzjjyz encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --verbose
+fzj encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --verbose
 
 # 检查缓存状态
 # (需要实现缓存状态命令)
@@ -343,10 +343,10 @@ fzjjyz encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --verbose
 **解决**:
 ```bash
 # 清理缓存
-fzjjyz keymanage -a clear-cache
+fzj keymanage -a clear-cache
 
 # 减小缓冲区
-fzjjyz encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --buffer-size 64
+fzj encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --buffer-size 64
 ```
 
 ## 📚 参考资料
@@ -360,4 +360,4 @@ fzjjyz encrypt -i file.txt -o file.fzj -p pub.pem -s priv.pem --buffer-size 64
 **文档版本**: 1.1
 **最后更新**: 2025-12-31
 **当前版本**: v0.2.0 (已发布)
-**维护者**: fzjjyz 开发团队
+**维护者**: fzj 开发团队

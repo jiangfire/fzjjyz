@@ -5,162 +5,252 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.1.1)'
+        required: false
+        type: string
 
 env:
   GO_VERSION: '1.25'
+  PROJECT_NAME: 'fzj'
 
 jobs:
+  # 测试和质量检查
   test:
-    name: Test
+    name: Test & Lint
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-
-      - name: Run tests
-        run: go test ./... -cover -v
-
-      - name: Run go fmt check
-        run: go fmt ./...
-
-      - name: Build check
-        run: go build -o /dev/null ./cmd/fzjjyz
-
-  build:
-    name: Build
-    needs: test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            GOOS: linux
-            GOARCH: amd64
-            artifact_name: fzjjyz_linux_amd64
-          - os: windows-latest
-            GOOS: windows
-            GOARCH: amd64
-            artifact_name: fzjjyz_windows_amd64.exe
-          - os: macos-latest
-            GOOS: darwin
-            GOARCH: amd64
-            artifact_name: fzjjyz_darwin_amd64
-          - os: macos-latest
-            GOOS: darwin
-            GOARCH: arm64
-            artifact_name: fzjjyz_darwin_arm64
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-
-      - name: Build binary
-        run: |
-          GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} go build -o ${{ matrix.artifact_name }} ./cmd/fzjjyz
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}
-          retention-days: 1
-
-  checksums:
-    name: Generate Checksums
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
-      - name: Generate checksums
-        run: |
-          cd fzjjyz_linux_amd64
-          ls -la
-          cd ..
-          for file in fzjjyz_*; do
-            if [ -f "$file" ]; then
-              sha256sum "$file" >> checksums.txt
-            fi
-          done
-          cat checksums.txt
-
-      - name: Upload checksums
-        uses: actions/upload-artifact@v4
-        with:
-          name: checksums
-          path: checksums.txt
-          retention-days: 1
-
-  release:
-    name: Create Release
-    needs: [build, checksums]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.2
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Run tests
+        run: |
+          go test ./... -v -race -coverprofile=coverage.out -covermode=atomic -timeout 5m
+
+      - name: Run linter
+        run: golangci-lint run --timeout 5m
+
+      - name: Build check
+        run: go build -o /dev/null ./cmd/fzj
+
+      - name: Test binary
+        run: |
+          go build -o fzj-test ./cmd/fzj
+          ./fzj-test version
+          ./fzj-test --help
+          rm fzj-test
+
+  # 跨平台构建
+  build:
+    name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+          - os: darwin
+            arch: amd64
+            runner: macos-latest
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+          - os: windows
+            arch: arm64
+            runner: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Get version info
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$VERSION" == "v"* ]]; then
+            VERSION=${VERSION#v}
+          fi
+          if [[ -z "$VERSION" ]]; then
+            VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Git commit: ${{ github.sha }}"
+          echo "Version: $VERSION"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          OUTPUT="dist/${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch }}"
+          if [[ "${{ matrix.os }}" == "windows" ]]; then
+            OUTPUT="${OUTPUT}.exe"
+          fi
+
+          go build -ldflags "-s -w -X main.Version=$VERSION -X main.BuildTime=$(date -u +"%Y-%m-%dT%H:%M:%SZ") -X main.GitCommit=${{ github.sha }}" \
+            -o "$OUTPUT" ./cmd/fzj
+
+          chmod +x "$OUTPUT"
+          echo "Built: $OUTPUT"
+          ls -lh "$OUTPUT"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/${{ env.PROJECT_NAME }}-${{ matrix.os }}-${{ matrix.arch }}*
+          retention-days: 7
+
+  # 创建发布包
+  package:
+    name: Package & Release
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
 
-      - name: Move artifacts to release directory
+      - name: Prepare release assets
+        id: prepare
         run: |
+          # 获取版本
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$VERSION" == "v"* ]]; then
+            VERSION=${VERSION#v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # 创建发布目录
           mkdir -p release
-          mv fzjjyz_linux_amd64/fzjjyz_linux_amd64 release/ 2>/dev/null || true
-          mv fzjjyz_windows_amd64.exe/fzjjyz_windows_amd64.exe release/ 2>/dev/null || true
-          mv fzjjyz_darwin_amd64/fzjjyz_darwin_amd64 release/ 2>/dev/null || true
-          mv fzjjyz_darwin_arm64/fzjjyz_darwin_arm64 release/ 2>/dev/null || true
-          mv checksums/checksums.txt release/ 2>/dev/null || true
-          cd release && ls -la
+          cd artifacts
+
+          # 处理每个二进制文件
+          for file in fzj-*; do
+            if [[ -f "$file" ]]; then
+              # 保持原名，但确保 windows 文件有 .exe
+              if [[ "$file" == *"windows"* ]] && [[ "$file" != *.exe ]]; then
+                mv "$file" "${file}.exe"
+                echo "Renamed: $file -> ${file}.exe"
+              fi
+              cp "$file" ../release/
+              echo "Copied: $file"
+            fi
+          done
+
+          cd ../release
+          echo "=== Release files ==="
+          ls -lh
+
+          # 生成校验和
+          echo "=== Checksums ==="
+          sha256sum * > checksums.sha256
+          cat checksums.sha256
+
+          # 生成文件列表
+          echo "=== File list ==="
+          ls -1 > filelist.txt
+          cat filelist.txt
 
       - name: Generate release notes
         id: release_notes
         run: |
-          # Try to use RELEASE_NOTES.md if exists, otherwise generate from git
+          # 检查是否有 RELEASE_NOTES.md
           if [ -f "RELEASE_NOTES.md" ]; then
-            echo "body<<EOF" >> $GITHUB_OUTPUT
-            cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            # Generate from git tags
             echo "body<<EOF" >> $GITHUB_OUTPUT
             echo "## 🎉 Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
-            echo "### 📦 Assets" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_linux_amd64\` - Linux 64-bit" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_windows_amd64.exe\` - Windows 64-bit" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_darwin_amd64\` - macOS Intel" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_darwin_arm64\` - macOS Apple Silicon" >> $GITHUB_OUTPUT
-            echo "- \`checksums.txt\` - SHA256 校验和" >> $GITHUB_OUTPUT
+            cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            # 从 git 生成
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            echo "## 🎉 Release ${{ github.ref_name }}" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
-            echo "### 🔍 验证" >> $GITHUB_OUTPUT
+            echo "### ✨ 功能特性" >> $GITHUB_OUTPUT
+            echo "- 后量子加密算法 (Kyber768 + Dilithium3)" >> $GITHUB_OUTPUT
+            echo "- 混合加密 (Kyber + ECDH)" >> $GITHUB_OUTPUT
+            echo "- AES-256-GCM 数据加密" >> $GITHUB_OUTPUT
+            echo "- 多语言支持 (中文/英文)" >> $GITHUB_OUTPUT
+            echo "- 目录批量加密" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 📦 下载说明" >> $GITHUB_OUTPUT
+            echo "- **Linux**: 下载 \`fzj-linux-amd64\` 或 \`fzj-linux-arm64\`" >> $GITHUB_OUTPUT
+            echo "- **macOS**: 下载 \`fzj-darwin-amd64\` 或 \`fzj-darwin-arm64\`" >> $GITHUB_OUTPUT
+            echo "- **Windows**: 下载 \`fzj-windows-amd64.exe\` 或 \`fzj-windows-arm64.exe\`" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 🔍 校验和" >> $GITHUB_OUTPUT
+            echo "所有文件的 SHA256 校验和已包含在 \`checksums.sha256\` 文件中。" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### 🚀 快速开始" >> $GITHUB_OUTPUT
             echo "\`\`\`bash" >> $GITHUB_OUTPUT
-            echo "# 验证校验和" >> $GITHUB_OUTPUT
-            echo "sha256sum -c checksums.txt" >> $GITHUB_OUTPUT
+            echo "# 查看帮助" >> $GITHUB_OUTPUT
+            echo "./fzj --help" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "# 生成密钥对" >> $GITHUB_OUTPUT
+            echo "./fzj keygen" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "# 加密文件" >> $GITHUB_OUTPUT
+            echo "./fzj encrypt -i input.txt -o output.fzj --pubkey public.key" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "# 解密文件" >> $GITHUB_OUTPUT
+            echo "./fzj decrypt -i output.fzj -o decrypted.txt --privkey private.key --verify verify.key" >> $GITHUB_OUTPUT
             echo "\`\`\`" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "---" >> $GITHUB_OUTPUT
+            echo "*构建时间: ${{ github.event.repository.updated_at }}*" >> $GITHUB_OUTPUT
+            echo "*Git Commit: ${{ github.sha }}*" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -168,24 +258,51 @@ jobs:
           body: ${{ steps.release_notes.outputs.body }}
           draft: false
           prerelease: false
+          generate_release_notes: true
           files: |
-            release/fzjjyz_linux_amd64
-            release/fzjjyz_windows_amd64.exe
-            release/fzjjyz_darwin_amd64
-            release/fzjjyz_darwin_arm64
-            release/checksums.txt
+            release/*
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-  cleanup:
-    name: Cleanup Artifacts
-    needs: release
+      - name: Release Summary
+        run: |
+          echo "## 发布完成 ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**版本**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**提交**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 可用文件" >> $GITHUB_STEP_SUMMARY
+          cd release
+          for file in *; do
+            echo "- \`$file\`" >> $GITHUB_STEP_SUMMARY
+          done
+
+  # 手动触发的单平台构建
+  manual-build:
+    name: Manual Build
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
     steps:
-      - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          name: |
-            fzjjyz_linux_amd64
-            fzjjyz_windows_amd64.exe
-            fzjjyz_darwin_amd64
-            fzjjyz_darwin_arm64
-            checksums
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build for Linux
+        run: |
+          VERSION=${{ github.event.inputs.version || 'manual' }}
+          mkdir -p dist
+          go build -ldflags "-s -w -X main.Version=$VERSION" -o dist/${{ env.PROJECT_NAME }} ./cmd/fzj
+          chmod +x dist/${{ env.PROJECT_NAME }}
+          ls -lh dist/
+          ./dist/${{ env.PROJECT_NAME }} version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PROJECT_NAME }}-manual
+          path: dist/${{ env.PROJECT_NAME }}
+          retention-days: 30

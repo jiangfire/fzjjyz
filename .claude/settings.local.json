@@ -80,7 +80,11 @@
       "Bash(git stash:*)",
       "Bash(git stash pop:*)",
       "Bash(git checkout:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git describe:*)",
+      "Bash(mv:*)",
+      "Bash(go install:*)",
+      "Bash(~/go/bin/gosec -config .gosec ./...:*)"
     ]
   }
 }

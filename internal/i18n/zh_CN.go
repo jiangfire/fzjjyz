@@ -14,9 +14,9 @@ func (z *zhCN) Get(key string) string {
 // zhTranslations 中文翻译映射.
 var zhTranslations = map[string]string{
 	// 根命令和应用信息
-	"app.name":        "fzjjyz",
+	"app.name":        "fzj",
 	"app.description": "后量子文件加密工具 - 使用 Kyber768 + ECDH + AES-256-GCM + Dilithium3",
-	"app.long": `fzjjyz - 后量子文件加密工具
+	"app.long": `fzj - 后量子文件加密工具
 
 使用以下算法提供安全的文件加密：
   • Kyber768 - 后量子密钥封装
@@ -26,18 +26,18 @@ var zhTranslations = map[string]string{
 
 快速开始：
   # 生成密钥对
-  fzjjyz keygen -d ./keys -n mykey
+  fzj keygen -d ./keys -n mykey
 
   # 加密文件
-  fzjjyz encrypt -i plaintext.txt -o encrypted.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem
+  fzj encrypt -i plaintext.txt -o encrypted.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem
 
   # 解密文件
-  fzjjyz decrypt -i encrypted.fzj -o decrypted.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem
+  fzj decrypt -i encrypted.fzj -o decrypted.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem
 
   # 查看文件信息
-  fzjjyz info -i encrypted.fzj
+  fzj info -i encrypted.fzj
 
-项目主页: https://codeberg.org/jiangfire/fzjjyz`,
+项目主页: https://codeberg.org/jiangfire/fzj`,
 
 	// 全局标志
 	"flags.verbose": "启用详细输出",
@@ -62,8 +62,8 @@ var zhTranslations = map[string]string{
   --sign-key, -s      Dilithium 私钥文件
 
 示例：
-  fzjjyz encrypt -i plaintext.txt -o encrypted.fzj -p public.pem -s dilithium_private.pem
-  fzjjyz encrypt --input data.txt --public-key pub.pem --sign-key priv.pem --force`,
+  fzj encrypt -i plaintext.txt -o encrypted.fzj -p public.pem -s dilithium_private.pem
+  fzj encrypt --input data.txt --public-key pub.pem --sign-key priv.pem --force`,
 	"encrypt.flags.input":       "输入文件路径 (必需)",
 	"encrypt.flags.output":      "输出文件路径 (可选，默认: input.fzj)",
 	"encrypt.flags.public-key":  "Kyber+ECDH 公钥文件 (必需)",
@@ -91,8 +91,8 @@ var zhTranslations = map[string]string{
   --verify-key, -s    Dilithium 公钥文件 (可选)
 
 示例：
-  fzjjyz decrypt -i encrypted.fzj -o decrypted.txt -p private.pem -s dilithium_public.pem
-  fzjjyz decrypt --input data.fzj --private-key priv.pem --verify-key pub.pem --force`,
+  fzj decrypt -i encrypted.fzj -o decrypted.txt -p private.pem -s dilithium_public.pem
+  fzj decrypt --input data.fzj --private-key priv.pem --verify-key pub.pem --force`,
 	"decrypt.flags.input":       "加密文件路径 (必需)",
 	"decrypt.flags.output":      "输出文件路径 (可选，默认: 原文件名)",
 	"decrypt.flags.private-key": "Kyber+ECDH 私钥文件 (必需)",
@@ -122,8 +122,8 @@ var zhTranslations = map[string]string{
   --sign-key, -s      Dilithium 私钥文件
 
 示例：
-  fzjjyz encrypt-dir -i ./sensitive_data -o secure.fzj -p public.pem -s dilithium_private.pem
-  fzjjyz encrypt-dir --input ./confidential --output backup.fzj --public-key pub.pem --sign-key priv.pem --force`,
+  fzj encrypt-dir -i ./sensitive_data -o secure.fzj -p public.pem -s dilithium_private.pem
+  fzj encrypt-dir --input ./confidential --output backup.fzj --public-key pub.pem --sign-key priv.pem --force`,
 	"encrypt-dir.flags.input":       "源目录路径 (必需)",
 	"encrypt-dir.flags.output":      "输出加密文件路径 (必需)",
 	"encrypt-dir.flags.public-key":  "Kyber+ECDH 公钥文件 (必需)",
@@ -153,8 +153,8 @@ var zhTranslations = map[string]string{
   --verify-key, -s    Dilithium 公钥文件 (可选)
 
 示例：
-  fzjjyz decrypt-dir -i secure.fzj -o ./restored -p private.pem -s dilithium_public.pem
-  fzjjyz decrypt-dir --input backup.fzj --output ./recovered --private-key priv.pem --verify-key pub.pem --force`,
+  fzj decrypt-dir -i secure.fzj -o ./restored -p private.pem -s dilithium_public.pem
+  fzj decrypt-dir --input backup.fzj --output ./recovered --private-key priv.pem --verify-key pub.pem --force`,
 	"decrypt-dir.flags.input":       "加密文件路径 (必需)",
 	"decrypt-dir.flags.output":      "输出目录路径 (必需)",
 	"decrypt-dir.flags.private-key": "Kyber+ECDH 私钥文件 (必需)",
@@ -176,8 +176,8 @@ var zhTranslations = map[string]string{
   {name}_dilithium_private.pem - Dilithium 私钥 (0600权限)
 
 示例：
-  fzjjyz keygen -d ./keys -n mykey
-  fzjjyz keygen --output-dir ./keys --name mykey --force`,
+  fzj keygen -d ./keys -n mykey
+  fzj keygen --output-dir ./keys --name mykey --force`,
 	"keygen.flags.output-dir": "输出目录",
 	"keygen.flags.name":       "密钥名称前缀 (默认: 时间戳)",
 	"keygen.flags.force":      "覆盖现有文件",
@@ -193,13 +193,13 @@ var zhTranslations = map[string]string{
 
 示例:
   # 导出公钥
-  fzjjyz keymanage export --private-key private.pem --output public_extracted.pem
+  fzj keymanage export --private-key private.pem --output public_extracted.pem
 
   # 验证密钥对
-  fzjjyz keymanage verify --public-key public.pem --private-key private.pem
+  fzj keymanage verify --public-key public.pem --private-key private.pem
 
   # 导入密钥
-  fzjjyz keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
+  fzj keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
 	"keymanage.flags.action":      "操作类型: export/import/verify (必需)",
 	"keymanage.flags.public-key":  "公钥文件路径",
 	"keymanage.flags.private-key": "私钥文件路径",
@@ -216,13 +216,13 @@ var zhTranslations = map[string]string{
   • 完整性验证
 
 示例：
-  fzjjyz info -i encrypted.fzj
-  fzjjyz info --input data.fzj`,
+  fzj info -i encrypted.fzj
+  fzj info --input data.fzj`,
 	"info.flags.input": "加密文件路径 (必需)",
 
 	// version 命令
 	"version.short":       "显示版本信息",
-	"version.long":        "显示 fzjjyz 的版本信息和构建详情",
+	"version.long":        "显示 fzj 的版本信息和构建详情",
 	"version.info":        "版本信息",
 	"version.label":       "版本:",
 	"version.app_name":    "应用名称:",
@@ -365,7 +365,7 @@ var zhTranslations = map[string]string{
   1. 请检查公钥文件路径是否正确: %s
   2. 确保公钥文件格式正确（PEM 格式）
   3. 检查文件权限（需可读）
-  4. 如果是首次使用，请先生成密钥对: fzjjyz keygen`,
+  4. 如果是首次使用，请先生成密钥对: fzj keygen`,
 	"error.load_private_key_failed": `❌ 加载私钥失败: %v
 
 提示:
@@ -381,7 +381,7 @@ var zhTranslations = map[string]string{
   2. 确保私钥文件格式正确（PEM 格式）
   3. 检查文件权限（建议 0600）
   4. 私钥文件应仅由所有者读取
-  5. 如果是首次使用，请先生成密钥对: fzjjyz keygen`,
+  5. 如果是首次使用，请先生成密钥对: fzj keygen`,
 	"error.load_verify_key_failed": `❌ 加载验证公钥失败: %v
 
 提示:
@@ -418,7 +418,7 @@ var zhTranslations = map[string]string{
 可能原因:
   1. 密钥不匹配（使用了错误的私钥）
   2. 文件已损坏或被篡改
-  3. 文件格式不正确（不是 fzjjyz 加密文件）
+  3. 文件格式不正确（不是 fzj 加密文件）
   4. 签名验证失败（文件可能被篡改）
   5. 文件权限不足
 

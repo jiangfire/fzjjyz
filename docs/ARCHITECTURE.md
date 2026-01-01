@@ -1,12 +1,12 @@
 # 架构文档
 
-本文档描述 fzjjyz 的系统架构、模块设计和实现细节。
+本文档描述 fzj 的系统架构、模块设计和实现细节。
 
 ## 🏗️ 系统概览
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        CLI 层 (cmd/fzjjyz)                   │
+│                        CLI 层 (cmd/fzj)                   │
 │  encrypt | decrypt | encrypt-dir | decrypt-dir              │
 │  keygen | keymanage | info | version                        │
 └─────────────────────────────────────────────────────────────┘
@@ -568,7 +568,7 @@ internal/crypto/
 ### 集成测试
 
 ```
-cmd/fzjjyz/
+cmd/fzj/
 └── main_test.go            # CLI 集成测试
 ```
 
@@ -653,7 +653,7 @@ fmt.Printf("%s\n", msg)
 ## 📦 依赖关系
 
 ```
-fzjjyz
+fzj
 ├── Go 标准库
 │   ├── crypto/ecdh
 │   ├── crypto/sha256
@@ -737,4 +737,4 @@ type Metrics struct {
 **文档版本**: 1.1
 **最后更新**: 2025-12-31
 **当前版本**: v0.2.0 (已发布)
-**维护者**: fzjjyz 开发团队
+**维护者**: fzj 开发团队

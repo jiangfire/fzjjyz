@@ -172,7 +172,7 @@ func TestSignFile(t *testing.T) {
 
 	testFile := filepath.Join(tmpDir, "test.txt")
 	testData := []byte("File content for signing")
-	if err := os.WriteFile(testFile, testData, 0644); err != nil {
+	if err := os.WriteFile(testFile, testData, 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -206,14 +206,14 @@ func TestVerifyFileSignatureTampered(t *testing.T) {
 	pub, priv, _ := GenerateDilithiumKeys()
 
 	testFile := filepath.Join(tmpDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("Original data"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Original data"), 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
 	signature, _ := SignFile(testFile, priv)
 
 	// 篡改文件
-	if err := os.WriteFile(testFile, []byte("Tampered data"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Tampered data"), 0600); err != nil {
 		t.Fatalf("篡改文件失败: %v", err)
 	}
 

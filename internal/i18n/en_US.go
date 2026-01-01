@@ -14,9 +14,9 @@ func (e *enUS) Get(key string) string {
 // enTranslations 英文翻译映射.
 var enTranslations = map[string]string{
 	// 根命令和应用信息
-	"app.name":        "fzjjyz",
+	"app.name":        "fzj",
 	"app.description": "Post-quantum file encryption tool - Using Kyber768 + ECDH + AES-256-GCM + Dilithium3",
-	"app.long": `fzjjyz - Post-quantum file encryption tool
+	"app.long": `fzj - Post-quantum file encryption tool
 
 Provides secure file encryption using the following algorithms:
   • Kyber768 - Post-quantum key encapsulation
@@ -26,18 +26,18 @@ Provides secure file encryption using the following algorithms:
 
 Quick start:
   # Generate key pair
-  fzjjyz keygen -d ./keys -n mykey
+  fzj keygen -d ./keys -n mykey
 
   # Encrypt file
-  fzjjyz encrypt -i plaintext.txt -o encrypted.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem
+  fzj encrypt -i plaintext.txt -o encrypted.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem
 
   # Decrypt file
-  fzjjyz decrypt -i encrypted.fzj -o decrypted.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem
+  fzj decrypt -i encrypted.fzj -o decrypted.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem
 
   # View file info
-  fzjjyz info -i encrypted.fzj
+  fzj info -i encrypted.fzj
 
-Project home: https://codeberg.org/jiangfire/fzjjyz`,
+Project home: https://codeberg.org/jiangfire/fzj`,
 
 	// 全局标志
 	"flags.verbose": "Enable verbose output",
@@ -62,8 +62,8 @@ Required parameters:
   --sign-key, -s      Dilithium private key file
 
 Examples:
-  fzjjyz encrypt -i plaintext.txt -o encrypted.fzj -p public.pem -s dilithium_private.pem
-  fzjjyz encrypt --input data.txt --public-key pub.pem --sign-key priv.pem --force`,
+  fzj encrypt -i plaintext.txt -o encrypted.fzj -p public.pem -s dilithium_private.pem
+  fzj encrypt --input data.txt --public-key pub.pem --sign-key priv.pem --force`,
 	"encrypt.flags.input":       "Input file path (required)",
 	"encrypt.flags.output":      "Output file path (optional, default: input.fzj)",
 	"encrypt.flags.public-key":  "Kyber+ECDH public key file (required)",
@@ -91,8 +91,8 @@ Required parameters:
   --verify-key, -s    Dilithium public key file (optional)
 
 Examples:
-  fzjjyz decrypt -i encrypted.fzj -o decrypted.txt -p private.pem -s dilithium_public.pem
-  fzjjyz decrypt --input data.fzj --private-key priv.pem --verify-key pub.pem --force`,
+  fzj decrypt -i encrypted.fzj -o decrypted.txt -p private.pem -s dilithium_public.pem
+  fzj decrypt --input data.fzj --private-key priv.pem --verify-key pub.pem --force`,
 	"decrypt.flags.input":       "Encrypted file path (required)",
 	"decrypt.flags.output":      "Output file path (optional, default: original filename)",
 	"decrypt.flags.private-key": "Kyber+ECDH private key file (required)",
@@ -122,8 +122,8 @@ Required parameters:
   --sign-key, -s      Dilithium private key file
 
 Examples:
-  fzjjyz encrypt-dir -i ./sensitive_data -o secure.fzj -p public.pem -s dilithium_private.pem
-  fzjjyz encrypt-dir --input ./confidential --output backup.fzj --public-key pub.pem --sign-key priv.pem --force`,
+  fzj encrypt-dir -i ./sensitive_data -o secure.fzj -p public.pem -s dilithium_private.pem
+  fzj encrypt-dir --input ./confidential --output backup.fzj --public-key pub.pem --sign-key priv.pem --force`,
 	"encrypt-dir.flags.input":       "Source directory path (required)",
 	"encrypt-dir.flags.output":      "Output encrypted file path (required)",
 	"encrypt-dir.flags.public-key":  "Kyber+ECDH public key file (required)",
@@ -153,8 +153,8 @@ Required parameters:
   --verify-key, -s    Dilithium public key file (optional)
 
 Examples:
-  fzjjyz decrypt-dir -i secure.fzj -o ./restored -p private.pem -s dilithium_public.pem
-  fzjjyz decrypt-dir --input backup.fzj --output ./recovered --private-key priv.pem --verify-key pub.pem --force`,
+  fzj decrypt-dir -i secure.fzj -o ./restored -p private.pem -s dilithium_public.pem
+  fzj decrypt-dir --input backup.fzj --output ./recovered --private-key priv.pem --verify-key pub.pem --force`,
 	"decrypt-dir.flags.input":       "Encrypted file path (required)",
 	"decrypt-dir.flags.output":      "Output directory path (required)",
 	"decrypt-dir.flags.private-key": "Kyber+ECDH private key file (required)",
@@ -176,8 +176,8 @@ Generated files:
   {name}_dilithium_private.pem - Dilithium private key (0600 permissions)
 
 Examples:
-  fzjjyz keygen -d ./keys -n mykey
-  fzjjyz keygen --output-dir ./keys --name mykey --force`,
+  fzj keygen -d ./keys -n mykey
+  fzj keygen --output-dir ./keys --name mykey --force`,
 	"keygen.flags.output-dir": "Output directory",
 	"keygen.flags.name":       "Key name prefix (default: timestamp)",
 	"keygen.flags.force":      "Overwrite existing files",
@@ -193,13 +193,13 @@ Available operations:
 
 Examples:
   # Export public key
-  fzjjyz keymanage export --private-key private.pem --output public_extracted.pem
+  fzj keymanage export --private-key private.pem --output public_extracted.pem
 
   # Verify key pair
-  fzjjyz keymanage verify --public-key public.pem --private-key private.pem
+  fzj keymanage verify --public-key public.pem --private-key private.pem
 
   # Import keys
-  fzjjyz keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
+  fzj keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
 	"keymanage.flags.action":      "Action type: export/import/verify (required)",
 	"keymanage.flags.public-key":  "Public key file path",
 	"keymanage.flags.private-key": "Private key file path",
@@ -216,13 +216,13 @@ Examples:
   • Integrity verification
 
 Examples:
-  fzjjyz info -i encrypted.fzj
-  fzjjyz info --input data.fzj`,
+  fzj info -i encrypted.fzj
+  fzj info --input data.fzj`,
 	"info.flags.input": "Encrypted file path (required)",
 
 	// version 命令
 	"version.short":       "Show version information",
-	"version.long":        "Show fzjjyz version and build details",
+	"version.long":        "Show fzj version and build details",
 	"version.info":        "Version information",
 	"version.label":       "Version:",
 	"version.app_name":    "App name:",
@@ -366,7 +366,7 @@ Tips:
   1. Check public key file path: %s
   2. Ensure key format is correct (PEM format)
   3. Check file permissions (must be readable)
-  4. If first use, generate key pair first: fzjjyz keygen`,
+  4. If first use, generate key pair first: fzj keygen`,
 	"error.load_private_key_failed": `❌ Failed to load private key: %v
 
 Tips:
@@ -382,7 +382,7 @@ Tips:
   2. Ensure key format is correct (PEM format)
   3. Check file permissions (recommended 0600)
   4. Private key should be readable only by owner
-  5. If first use, generate key pair first: fzjjyz keygen`,
+  5. If first use, generate key pair first: fzj keygen`,
 	"error.load_verify_key_failed": `❌ Failed to load verification public key: %v
 
 Tips:
@@ -419,7 +419,7 @@ Suggestions:
 Possible causes:
   1. Key mismatch (using wrong private key)
   2. File corrupted or tampered
-  3. Incorrect file format (not fzjjyz encrypted)
+  3. Incorrect file format (not fzj encrypted)
   4. Signature verification failed (file may be tampered)
   5. Insufficient file permissions
 

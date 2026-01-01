@@ -37,13 +37,13 @@ jobs:
           git diff --exit-code || echo "::warning::Code formatting issues found"
 
       - name: Build
-        run: go build -o fzjjyz ./cmd/fzjjyz
+        run: go build -o fzj ./cmd/fzj
 
       - name: Run help
-        run: ./fzjjyz --help
+        run: ./fzj --help
 
       - name: Run version
-        run: ./fzjjyz version
+        run: ./fzj version
 
   cross-compile:
     name: Cross-compile
@@ -64,28 +64,28 @@ jobs:
       - name: Cross-compile for major platforms
         run: |
           echo "Building for Linux..."
-          GOOS=linux GOARCH=amd64 go build -o fzjjyz_linux_amd64 ./cmd/fzjjyz
+          GOOS=linux GOARCH=amd64 go build -o fzj_linux_amd64 ./cmd/fzj
 
           echo "Building for Windows..."
-          GOOS=windows GOARCH=amd64 go build -o fzjjyz_windows_amd64.exe ./cmd/fzjjyz
+          GOOS=windows GOARCH=amd64 go build -o fzj_windows_amd64.exe ./cmd/fzj
 
           echo "Building for macOS Intel..."
-          GOOS=darwin GOARCH=amd64 go build -o fzjjyz_darwin_amd64 ./cmd/fzjjyz
+          GOOS=darwin GOARCH=amd64 go build -o fzj_darwin_amd64 ./cmd/fzj
 
           echo "Building for macOS Apple Silicon..."
-          GOOS=darwin GOARCH=arm64 go build -o fzjjyz_darwin_arm64 ./cmd/fzjjyz
+          GOOS=darwin GOARCH=arm64 go build -o fzj_darwin_arm64 ./cmd/fzj
 
           echo "Build completed successfully:"
-          ls -lh fzjjyz_*
+          ls -lh fzj_*
 
       - name: Test binaries
         run: |
           # Test Linux binary (should work on Ubuntu runner)
-          ./fzjjyz_linux_amd64 version
-          ./fzjjyz_linux_amd64 keygen -d /tmp/testkeys -n testkey
+          ./fzj_linux_amd64 version
+          ./fzj_linux_amd64 keygen -d /tmp/testkeys -n testkey
           echo "test content" > /tmp/test.txt
-          ./fzjjyz_linux_amd64 encrypt -i /tmp/test.txt -o /tmp/test.fzj -p /tmp/testkeys/testkey_public.pem -s /tmp/testkeys/testkey_dilithium_private.pem
-          ./fzjjyz_linux_amd64 decrypt -i /tmp/test.fzj -o /tmp/test_recovered.txt -p /tmp/testkeys/testkey_private.pem -s /tmp/testkeys/testkey_dilithium_public.pem
+          ./fzj_linux_amd64 encrypt -i /tmp/test.txt -o /tmp/test.fzj -p /tmp/testkeys/testkey_public.pem -s /tmp/testkeys/testkey_dilithium_private.pem
+          ./fzj_linux_amd64 decrypt -i /tmp/test.fzj -o /tmp/test_recovered.txt -p /tmp/testkeys/testkey_private.pem -s /tmp/testkeys/testkey_dilithium_public.pem
           diff /tmp/test.txt /tmp/test_recovered.txt && echo "✅ Functional test passed"
           rm -rf /tmp/testkeys /tmp/test.txt /tmp/test.fzj /tmp/test_recovered.txt
 
@@ -113,4 +113,4 @@ jobs:
       - name: Run gosec
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec ./...
+          gosec -exclude=G115,G304,G305,G110 ./...

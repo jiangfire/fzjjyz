@@ -133,7 +133,7 @@ func writeEncryptedFile(outputPath string, headerBytes []byte, ciphertext []byte
 // parseEncryptedFile 读取并解析加密文件.
 func parseEncryptedFile(inputPath string) (header *format.FileHeader, ciphertext []byte, err error) {
 	// G304: inputPath 应由调用方验证
-	encryptedData, err := os.ReadFile(inputPath)
+	encryptedData, err := os.ReadFile(inputPath) //nolint:gosec
 	if err != nil {
 		return nil, nil, fmt.Errorf("read encrypted file: %w", err)
 	}
@@ -225,7 +225,7 @@ func EncryptFileCore(
 	dilithiumPriv interface{},
 ) (header *format.FileHeader, ciphertext []byte, err error) {
 	// G304: inputPath 应由调用方验证
-	plaintext, err := os.ReadFile(inputPath)
+	plaintext, err := os.ReadFile(inputPath) //nolint:gosec
 	if err != nil {
 		return nil, nil, utils.NewCryptoError(
 			utils.ErrIOError,

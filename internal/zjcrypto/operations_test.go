@@ -31,7 +31,7 @@ func TestEncryptFile(t *testing.T) {
 	// 创建测试文件
 	originalFile := filepath.Join(tmpDir, "test.txt")
 	originalData := []byte("Hello, this is a test file for encryption!")
-	if err := os.WriteFile(originalFile, originalData, 0644); err != nil {
+	if err := os.WriteFile(originalFile, originalData, 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -55,7 +55,7 @@ func TestEncryptFile(t *testing.T) {
 	}
 
 	// 验证解密数据
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestEncryptEmptyFile(t *testing.T) {
 
 	// 创建空文件
 	emptyFile := filepath.Join(tmpDir, "empty.txt")
-	if err := os.WriteFile(emptyFile, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(emptyFile, []byte{}, 0600); err != nil {
 		t.Fatalf("创建空文件失败: %v", err)
 	}
 
@@ -99,7 +99,7 @@ func TestEncryptEmptyFile(t *testing.T) {
 		t.Fatalf("空文件解密失败: %v", err)
 	}
 
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestEncryptLargeFile(t *testing.T) {
 	}
 
 	largeFile := filepath.Join(tmpDir, "large.bin")
-	if err := os.WriteFile(largeFile, largeData, 0644); err != nil {
+	if err := os.WriteFile(largeFile, largeData, 0600); err != nil {
 		t.Fatalf("创建大文件失败: %v", err)
 	}
 
@@ -148,7 +148,7 @@ func TestEncryptLargeFile(t *testing.T) {
 		t.Fatalf("大文件解密失败: %v", err)
 	}
 
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -160,7 +160,6 @@ func TestEncryptLargeFile(t *testing.T) {
 
 // TestEncryptedFileFormat 测试加密文件格式.
 //
-//nolint:funlen // 测试函数需要完整验证所有文件头字段
 func TestEncryptedFileFormat(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
 	if err != nil {
@@ -179,7 +178,7 @@ func TestEncryptedFileFormat(t *testing.T) {
 	// 创建测试文件
 	testFile := filepath.Join(tmpDir, "test.txt")
 	testData := []byte("Format test")
-	if err := os.WriteFile(testFile, testData, 0644); err != nil {
+	if err := os.WriteFile(testFile, testData, 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -190,7 +189,7 @@ func TestEncryptedFileFormat(t *testing.T) {
 	}
 
 	// 读取加密文件并验证格式
-	f, err := os.Open(encryptedFile)
+	f, err := os.Open(encryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("打开加密文件失败: %v", err)
 	}
@@ -248,7 +247,7 @@ func TestTamperedEncryptedFile(t *testing.T) {
 
 	// 创建并加密文件
 	testFile := filepath.Join(tmpDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("Test data"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Test data"), 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -259,7 +258,7 @@ func TestTamperedEncryptedFile(t *testing.T) {
 	}
 
 	// 读取加密文件
-	encryptedData, err := os.ReadFile(encryptedFile)
+	encryptedData, err := os.ReadFile(encryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取加密文件失败: %v", err)
 	}
@@ -271,7 +270,7 @@ func TestTamperedEncryptedFile(t *testing.T) {
 		tamperedData[100] ^= 0xFF // 篡改数据部分
 
 		tamperedFile := filepath.Join(tmpDir, "tampered.enc")
-		if err := os.WriteFile(tamperedFile, tamperedData, 0644); err != nil {
+		if err := os.WriteFile(tamperedFile, tamperedData, 0600); err != nil {
 			t.Fatalf("创建篡改文件失败: %v", err)
 		}
 
@@ -307,7 +306,7 @@ func TestInvalidKeyDecrypt(t *testing.T) {
 
 	// 创建并加密文件
 	testFile := filepath.Join(tmpDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("Secret data"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Secret data"), 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -348,7 +347,7 @@ func TestBinaryFile(t *testing.T) {
 	}
 
 	binaryFile := filepath.Join(tmpDir, "binary.bin")
-	if err := os.WriteFile(binaryFile, binaryData, 0644); err != nil {
+	if err := os.WriteFile(binaryFile, binaryData, 0600); err != nil {
 		t.Fatalf("创建二进制文件失败: %v", err)
 	}
 
@@ -364,7 +363,7 @@ func TestBinaryFile(t *testing.T) {
 		t.Fatalf("二进制文件解密失败: %v", err)
 	}
 
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -392,7 +391,7 @@ func TestFileWithSpecialChars(t *testing.T) {
 
 	// 使用特殊字符文件名
 	specialFile := filepath.Join(tmpDir, "test-file_v1.2.txt")
-	if err := os.WriteFile(specialFile, []byte("Special chars test"), 0644); err != nil {
+	if err := os.WriteFile(specialFile, []byte("Special chars test"), 0600); err != nil {
 		t.Fatalf("创建特殊字符文件失败: %v", err)
 	}
 
@@ -408,7 +407,7 @@ func TestFileWithSpecialChars(t *testing.T) {
 		t.Fatalf("特殊字符文件解密失败: %v", err)
 	}
 
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -441,7 +440,7 @@ func TestConcurrentEncrypt(t *testing.T) {
 	for i := 0; i < numFiles; i++ {
 		file := filepath.Join(tmpDir, "test"+string(rune('0'+i))+".txt")
 		data := []byte("Test data " + string(rune('0'+i)))
-		if err := os.WriteFile(file, data, 0644); err != nil {
+		if err := os.WriteFile(file, data, 0600); err != nil {
 			t.Fatalf("创建测试文件 %d 失败: %v", i, err)
 		}
 		files[i] = file
@@ -467,7 +466,7 @@ func TestConcurrentEncrypt(t *testing.T) {
 		}
 
 		originalData, _ := os.ReadFile(files[i])
-		decryptedData, _ := os.ReadFile(decryptedFile)
+		decryptedData, _ := os.ReadFile(decryptedFile) //nolint:gosec
 		if !bytes.Equal(originalData, decryptedData) {
 			t.Errorf("文件 %d 数据不匹配", i)
 		}
@@ -493,7 +492,7 @@ func TestEncryptFileMetadata(t *testing.T) {
 	// 创建测试文件
 	testFile := filepath.Join(tmpDir, "metadata.txt")
 	testData := []byte("Metadata test")
-	if err := os.WriteFile(testFile, testData, 0644); err != nil {
+	if err := os.WriteFile(testFile, testData, 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -521,7 +520,7 @@ func TestEncryptFileMetadata(t *testing.T) {
 	}
 
 	// 验证加密文件不可读为文本
-	encData, _ := os.ReadFile(encryptedFile)
+	encData, _ := os.ReadFile(encryptedFile) //nolint:gosec
 	if bytes.Contains(encData, []byte("Metadata test")) {
 		t.Error("加密文件包含明文")
 	}

@@ -1,5 +1,5 @@
 // Package format provides file header serialization and deserialization
-// for the fzjjyz encrypted file format.
+// for the fzj encrypted file format.
 package format
 
 import (

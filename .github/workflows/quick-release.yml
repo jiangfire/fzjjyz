@@ -35,17 +35,17 @@ jobs:
       - name: Build binaries
         run: |
           # Linux
-          GOOS=linux GOARCH=amd64 go build -o fzjjyz_linux_amd64 ./cmd/fzjjyz
+          GOOS=linux GOARCH=amd64 go build -o fzj_linux_amd64 ./cmd/fzj
           # Windows
-          GOOS=windows GOARCH=amd64 go build -o fzjjyz_windows_amd64.exe ./cmd/fzjjyz
+          GOOS=windows GOARCH=amd64 go build -o fzj_windows_amd64.exe ./cmd/fzj
           # macOS Intel
-          GOOS=darwin GOARCH=amd64 go build -o fzjjyz_darwin_amd64 ./cmd/fzjjyz
+          GOOS=darwin GOARCH=amd64 go build -o fzj_darwin_amd64 ./cmd/fzj
           # macOS Apple Silicon
-          GOOS=darwin GOARCH=arm64 go build -o fzjjyz_darwin_arm64 ./cmd/fzjjyz
+          GOOS=darwin GOARCH=arm64 go build -o fzj_darwin_arm64 ./cmd/fzj
 
       - name: Generate checksums
         run: |
-          sha256sum fzjjyz_* > checksums.txt
+          sha256sum fzj_* > checksums.txt
           cat checksums.txt
 
       - name: Create Git tag
@@ -77,11 +77,11 @@ jobs:
             echo "\`\`\`bash" >> $GITHUB_OUTPUT
             echo "# 1. 解压/下载对应平台的二进制" >> $GITHUB_OUTPUT
             echo "# 2. 生成密钥" >> $GITHUB_OUTPUT
-            echo "./fzjjyz keygen -d ./keys -n mykey" >> $GITHUB_OUTPUT
+            echo "./fzj keygen -d ./keys -n mykey" >> $GITHUB_OUTPUT
             echo "# 3. 加密文件" >> $GITHUB_OUTPUT
-            echo "./fzjjyz encrypt -i secret.txt -o secret.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem" >> $GITHUB_OUTPUT
+            echo "./fzj encrypt -i secret.txt -o secret.fzj -p keys/mykey_public.pem -s keys/mykey_dilithium_private.pem" >> $GITHUB_OUTPUT
             echo "# 4. 解密文件" >> $GITHUB_OUTPUT
-            echo "./fzjjyz decrypt -i secret.fzj -o recovered.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem" >> $GITHUB_OUTPUT
+            echo "./fzj decrypt -i secret.fzj -o recovered.txt -p keys/mykey_private.pem -s keys/mykey_dilithium_public.pem" >> $GITHUB_OUTPUT
             echo "\`\`\`" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
@@ -89,10 +89,10 @@ jobs:
             echo "## 🎉 Release ${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
             echo "### 📦 Assets" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_linux_amd64\` - Linux 64-bit" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_windows_amd64.exe\` - Windows 64-bit" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_darwin_amd64\` - macOS Intel" >> $GITHUB_OUTPUT
-            echo "- \`fzjjyz_darwin_arm64\` - macOS Apple Silicon" >> $GITHUB_OUTPUT
+            echo "- \`fzj_linux_amd64\` - Linux 64-bit" >> $GITHUB_OUTPUT
+            echo "- \`fzj_windows_amd64.exe\` - Windows 64-bit" >> $GITHUB_OUTPUT
+            echo "- \`fzj_darwin_amd64\` - macOS Intel" >> $GITHUB_OUTPUT
+            echo "- \`fzj_darwin_arm64\` - macOS Apple Silicon" >> $GITHUB_OUTPUT
             echo "- \`checksums.txt\` - SHA256 校验和" >> $GITHUB_OUTPUT
             echo "" >> $GITHUB_OUTPUT
             echo "### 🔍 验证" >> $GITHUB_OUTPUT
@@ -111,8 +111,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            fzjjyz_linux_amd64
-            fzjjyz_windows_amd64.exe
-            fzjjyz_darwin_amd64
-            fzjjyz_darwin_arm64
+            fzj_linux_amd64
+            fzj_windows_amd64.exe
+            fzj_darwin_amd64
+            fzj_darwin_arm64
             checksums.txt

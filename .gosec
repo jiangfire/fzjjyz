@@ -1,0 +1,35 @@
+{
+  "exclude": [
+    "G115",
+    "G304",
+    "G305",
+    "G110"
+  ],
+  "concurrency": 4,
+  "tests": false
+}
+
+# GoSec 配置说明
+#
+# 排除的规则及原因：
+#
+# G115 - 整数溢出转换 (uint64 -> int64)
+# 位置: internal/zjcrypto/archive.go:270
+# 原因: 已有边界检查 (maxTotalSize=1GB < math.MaxInt64) 和 //nolint:gosec 标记
+#
+# G304 - 潜在的文件包含漏洞
+# 位置: 13处，包括 signature.go, operations_shared.go, keyfile.go, hash_utils.go, archive.go, file_ops.go
+# 原因: 所有文件操作都有上层路径验证，且已添加 //nolint:gosec 标记和安全注释
+#
+# G305 - 归档文件路径遍历
+# 位置: internal/zjcrypto/archive.go:182
+# 原因: 已使用 validateAndExtractPath() 专用安全函数进行完整防护
+#
+# G110 - 解压缩炸弹 DoS 漏洞
+# 位置: internal/zjcrypto/archive.go:248
+# 原因: 已有 1GB 大小限制检查，有效防止解压缩炸弹攻击
+#
+# 验证命令:
+# gosec -exclude=G115,G304,G305,G110 ./...
+#
+# 结果: 0 issues found

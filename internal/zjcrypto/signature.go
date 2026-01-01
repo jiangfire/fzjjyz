@@ -103,7 +103,7 @@ func VerifyHashSignature(hash []byte, signature []byte, pubKey interface{}) (boo
 // 辅助函数：读取文件数据.
 func readFileData(filePath string) ([]byte, error) {
 	// G304: filePath 应由调用方验证
-	data, err := os.ReadFile(filePath)
+	data, err := os.ReadFile(filePath) //nolint:gosec
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
 	}

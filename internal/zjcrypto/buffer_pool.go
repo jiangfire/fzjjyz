@@ -1,4 +1,4 @@
-// 包名与标准库 crypto 冲突，但实际使用完整路径导入不会冲突
+// Package zjcrypto 提供缓冲池功能
 package zjcrypto
 
 import "sync"

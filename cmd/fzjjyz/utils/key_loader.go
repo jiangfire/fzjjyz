@@ -1,6 +1,5 @@
 // Package utils provides key loading utilities (DRY: eliminate key loading repetition).
-//
-//nolint:revive
+//nolint:revive // utils 在 CLI 上下文中是合理的包名
 package utils
 
 import (

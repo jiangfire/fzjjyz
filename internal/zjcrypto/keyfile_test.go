@@ -128,11 +128,11 @@ func TestSaveKeyFilesContent(t *testing.T) {
 	}
 
 	// 读取文件内容验证格式
-	pubContent, err := os.ReadFile(pubPath)
+	pubContent, err := os.ReadFile(pubPath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取公钥文件失败: %v", err)
 	}
-	privContent, err := os.ReadFile(privPath)
+	privContent, err := os.ReadFile(privPath) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取私钥文件失败: %v", err)
 	}

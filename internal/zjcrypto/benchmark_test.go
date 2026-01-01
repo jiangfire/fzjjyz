@@ -40,7 +40,7 @@ func BenchmarkEncryptFile(b *testing.B) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+			if err := os.WriteFile(inputPath, data, 0600); err != nil {
 				b.Fatalf("Failed to write test file: %v", err)
 			}
 
@@ -83,7 +83,7 @@ func BenchmarkDecryptFile(b *testing.B) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+			if err := os.WriteFile(inputPath, data, 0600); err != nil {
 				b.Fatalf("Failed to write test file: %v", err)
 			}
 			_ = EncryptFile(inputPath, encryptedPath, kyberPub, ecdhPub, dilithiumPriv)
@@ -120,7 +120,7 @@ func BenchmarkStreamingEncrypt(b *testing.B) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+			if err := os.WriteFile(inputPath, data, 0600); err != nil {
 				b.Fatalf("Failed to write test file: %v", err)
 			}
 
@@ -173,7 +173,7 @@ func BenchmarkHeaderSerialization(b *testing.B) {
 		SigLen:     2700,
 		Signature:  make([]byte, 2700),
 		SHA256Hash: [32]byte{},
-		Timestamp:  uint32(time.Now().Unix() & 0xFFFFFFFF),
+		Timestamp:  uint32(time.Now().Unix() & 0xFFFFFFFF), //nolint:gosec
 	}
 
 	b.Run("Standard", func(b *testing.B) {
@@ -222,7 +222,6 @@ func BenchmarkCachePerformance(b *testing.B) {
 
 // TestPerformanceComparison 性能对比测试.
 //
-//nolint:funlen // 测试函数需要完整覆盖所有场景
 func TestPerformanceComparison(t *testing.T) {
 	// 生成密钥
 	kyberPub, kyberPriv, _ := GenerateKyberKeys()
@@ -244,7 +243,7 @@ func TestPerformanceComparison(t *testing.T) {
 			for i := range data {
 				data[i] = byte(i % 256)
 			}
-			if err := os.WriteFile(inputPath, data, 0644); err != nil {
+			if err := os.WriteFile(inputPath, data, 0600); err != nil {
 				t.Fatalf("Failed to write test file: %v", err)
 			}
 
@@ -273,11 +272,11 @@ func TestPerformanceComparison(t *testing.T) {
 			decryptTime := time.Since(start)
 
 			// 验证结果
-			originalData, err := os.ReadFile(inputPath)
+			originalData, err := os.ReadFile(inputPath) //nolint:gosec
 			if err != nil {
 				t.Fatalf("Failed to read original file: %v", err)
 			}
-			decryptedData, err := os.ReadFile(decryptedPath)
+			decryptedData, err := os.ReadFile(decryptedPath) //nolint:gosec
 			if err != nil {
 				t.Fatalf("Failed to read decrypted file: %v", err)
 			}

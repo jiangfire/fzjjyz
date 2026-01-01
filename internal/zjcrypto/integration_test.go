@@ -14,7 +14,7 @@ import (
 //
 //nolint:funlen // 端到端测试需要完整覆盖所有流程
 func TestIntegrationEndToEnd(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-integration-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-integration-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestIntegrationEndToEnd(t *testing.T) {
 	t.Log("步骤2: 创建测试文件...")
 	testData := []byte("这是一个完整的端到端测试文件，包含中文、English、1234567890!@#$%^&*()_+{}|:<>?[]\\;',./")
 	originalFile := filepath.Join(tmpDir, "original.txt")
-	if err := os.WriteFile(originalFile, testData, 0644); err != nil {
+	if err := os.WriteFile(originalFile, testData, 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -70,7 +70,7 @@ func TestIntegrationEndToEnd(t *testing.T) {
 
 	// 步骤5: 解析加密文件头
 	t.Log("步骤5: 解析加密文件头...")
-	f, err := os.Open(encryptedFile)
+	f, err := os.Open(encryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("打开加密文件失败: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestIntegrationEndToEnd(t *testing.T) {
 
 	// 步骤7: 验证解密数据
 	t.Log("步骤7: 验证解密数据...")
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestIntegrationEndToEnd(t *testing.T) {
 
 // TestIntegrationTamperDetection 篡改检测集成测试.
 func TestIntegrationTamperDetection(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-tamper-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-tamper-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestIntegrationTamperDetection(t *testing.T) {
 
 	// 创建并加密文件
 	testFile := filepath.Join(tmpDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("Tamper test data"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Tamper test data"), 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -156,7 +156,7 @@ func TestIntegrationTamperDetection(t *testing.T) {
 	}
 
 	// 篡改密文
-	encryptedData, err := os.ReadFile(encryptedFile)
+	encryptedData, err := os.ReadFile(encryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取加密文件失败: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestIntegrationTamperDetection(t *testing.T) {
 	tamperedData[200] ^= 0xFF // 篡改数据
 
 	tamperedFile := filepath.Join(tmpDir, "tampered.enc")
-	if err := os.WriteFile(tamperedFile, tamperedData, 0644); err != nil {
+	if err := os.WriteFile(tamperedFile, tamperedData, 0600); err != nil {
 		t.Fatalf("创建篡改文件失败: %v", err)
 	}
 
@@ -180,7 +180,7 @@ func TestIntegrationTamperDetection(t *testing.T) {
 
 // TestIntegrationWrongKey 使用错误密钥解密测试.
 func TestIntegrationWrongKey(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-wrongkey-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-wrongkey-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestIntegrationWrongKey(t *testing.T) {
 
 	// 创建并加密
 	testFile := filepath.Join(tmpDir, "secret.txt")
-	if err := os.WriteFile(testFile, []byte("Secret content"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Secret content"), 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -223,7 +223,7 @@ func TestIntegrationWrongKey(t *testing.T) {
 
 // TestIntegrationEmptyFile 空文件集成测试.
 func TestIntegrationEmptyFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-empty-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-empty-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -239,7 +239,7 @@ func TestIntegrationEmptyFile(t *testing.T) {
 
 	// 空文件
 	emptyFile := filepath.Join(tmpDir, "empty.txt")
-	if err := os.WriteFile(emptyFile, []byte{}, 0644); err != nil {
+	if err := os.WriteFile(emptyFile, []byte{}, 0600); err != nil {
 		t.Fatalf("创建空文件失败: %v", err)
 	}
 
@@ -254,7 +254,7 @@ func TestIntegrationEmptyFile(t *testing.T) {
 		t.Fatalf("空文件解密失败: %v", err)
 	}
 
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -266,7 +266,7 @@ func TestIntegrationEmptyFile(t *testing.T) {
 
 // TestIntegrationLargeFile 大文件集成测试.
 func TestIntegrationLargeFile(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-large-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-large-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestIntegrationLargeFile(t *testing.T) {
 	}
 
 	largeFile := filepath.Join(tmpDir, "large.bin")
-	if err := os.WriteFile(largeFile, largeData, 0644); err != nil {
+	if err := os.WriteFile(largeFile, largeData, 0600); err != nil {
 		t.Fatalf("创建大文件失败: %v", err)
 	}
 
@@ -302,7 +302,7 @@ func TestIntegrationLargeFile(t *testing.T) {
 		t.Fatalf("大文件解密失败: %v", err)
 	}
 
-	decryptedData, err := os.ReadFile(decryptedFile)
+	decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestIntegrationLargeFile(t *testing.T) {
 
 // TestIntegrationMultipleFiles 多文件并发集成测试.
 func TestIntegrationMultipleFiles(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-multi-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-multi-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -342,7 +342,7 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 	// 加密所有 files
 	for _, f := range files {
 		origPath := filepath.Join(tmpDir, f.name)
-		if err := os.WriteFile(origPath, f.data, 0644); err != nil {
+		if err := os.WriteFile(origPath, f.data, 0600); err != nil {
 			t.Fatalf("创建文件 %s 失败: %v", f.name, err)
 		}
 
@@ -356,7 +356,7 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 			t.Fatalf("文件 %s 解密失败: %v", f.name, err)
 		}
 
-		decData, err := os.ReadFile(decPath)
+		decData, err := os.ReadFile(decPath) //nolint:gosec
 		if err != nil {
 			t.Fatalf("读取解密文件 %s 失败: %v", f.name, err)
 		}
@@ -369,7 +369,7 @@ func TestIntegrationMultipleFiles(t *testing.T) {
 
 // TestIntegrationKeyPersistence 密钥持久化集成测试.
 func TestIntegrationKeyPersistence(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-keys-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-keys-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -402,7 +402,7 @@ func TestIntegrationKeyPersistence(t *testing.T) {
 
 	// 使用加载的密钥进行加密解密
 	testFile := filepath.Join(tmpDir, "test.txt")
-	if err := os.WriteFile(testFile, []byte("Key persistence test"), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte("Key persistence test"), 0600); err != nil {
 		t.Fatalf("创建测试文件失败: %v", err)
 	}
 
@@ -419,11 +419,11 @@ func TestIntegrationKeyPersistence(t *testing.T) {
 		t.Fatalf("使用加载的密钥解密失败: %v", err)
 	}
 
-	origData, err := os.ReadFile(testFile)
+	origData, err := os.ReadFile(testFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取原始文件失败: %v", err)
 	}
-	decData, err := os.ReadFile(decryptedFile)
+	decData, err := os.ReadFile(decryptedFile) //nolint:gosec
 	if err != nil {
 		t.Fatalf("读取解密文件失败: %v", err)
 	}
@@ -435,7 +435,7 @@ func TestIntegrationKeyPersistence(t *testing.T) {
 
 // TestIntegrationSpecialFilenames 特殊文件名集成测试.
 func TestIntegrationSpecialFilenames(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "fzjjyz-special-*")
+	tmpDir, err := os.MkdirTemp("", "fzj-special-*")
 	if err != nil {
 		t.Fatalf("创建临时目录失败: %v", err)
 	}
@@ -459,7 +459,7 @@ func TestIntegrationSpecialFilenames(t *testing.T) {
 	for _, name := range specialNames {
 		origPath := filepath.Join(tmpDir, name)
 		testData := []byte("Test content for " + name)
-		if err := os.WriteFile(origPath, testData, 0644); err != nil {
+		if err := os.WriteFile(origPath, testData, 0600); err != nil {
 			t.Fatalf("创建文件 %s 失败: %v", name, err)
 		}
 
@@ -473,7 +473,7 @@ func TestIntegrationSpecialFilenames(t *testing.T) {
 			t.Fatalf("文件 %s 解密失败: %v", name, err)
 		}
 
-		decData, err := os.ReadFile(decPath)
+		decData, err := os.ReadFile(decPath) //nolint:gosec
 		if err != nil {
 			t.Fatalf("读取解密文件 %s 失败: %v", name, err)
 		}

@@ -1,4 +1,4 @@
-# fzjjyz 代码质量报告
+# fzj 代码质量报告
 
 **项目：** 后量子文件加密工具
 **版本：** v0.2.0
@@ -58,11 +58,11 @@ $ golangci-lint run --enable-only=godot,staticcheck,unused,lll,goconst
 
 ```bash
 $ go test ./...
-ok      codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz      11.816s
-ok      codeberg.org/jiangfire/fzjjyz/internal/crypto 0.539s
-ok      codeberg.org/jiangfire/fzjjyz/internal/format (cached)
-ok      codeberg.org/jiangfire/fzjjyz/internal/i18n   (cached)
-ok      codeberg.org/jiangfire/fzjjyz/internal/utils  (cached)
+ok      codeberg.org/jiangfire/fzj/cmd/fzj      11.816s
+ok      codeberg.org/jiangfire/fzj/internal/crypto 0.539s
+ok      codeberg.org/jiangfire/fzj/internal/format (cached)
+ok      codeberg.org/jiangfire/fzj/internal/i18n   (cached)
+ok      codeberg.org/jiangfire/fzj/internal/utils  (cached)
 ✅ 所有测试通过
 ```
 
@@ -216,7 +216,7 @@ func EncryptFile(
 ```
 
 **主要修改文件：**
-1. `cmd/fzjjyz/*.go` - 8个CLI命令文件
+1. `cmd/fzj/*.go` - 8个CLI命令文件
 2. `internal/crypto/*.go` - 15个核心加密文件
 3. `internal/crypto/*_test.go` - 8个测试文件
 4. `internal/format/*.go` - 2个格式处理文件

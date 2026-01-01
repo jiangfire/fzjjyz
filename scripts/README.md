@@ -1,6 +1,6 @@
 # 发布自动化脚本
 
-这些脚本帮助你自动化 fzjjyz 项目的发布流程。
+这些脚本帮助你自动化 fzj 项目的发布流程。
 
 ## 目录结构
 
@@ -173,10 +173,10 @@ scripts\release.bat v0.1.1
 ```
 release/
 └── v0.1.1/
-    ├── fzjjyz_linux_amd64
-    ├── fzjjyz_windows_amd64.exe
-    ├── fzjjyz_darwin_amd64
-    ├── fzjjyz_darwin_arm64
+    ├── fzj_linux_amd64
+    ├── fzj_windows_amd64.exe
+    ├── fzj_darwin_amd64
+    ├── fzj_darwin_arm64
     ├── checksums.txt
     └── release_notes.md (可选)
 ```
@@ -275,4 +275,4 @@ git push origin --delete v0.1.1
 
 **版本**: 1.0
 **最后更新**: 2025-12-27
-**维护者**: fzjjyz 开发团队
+**维护者**: fzj 开发团队

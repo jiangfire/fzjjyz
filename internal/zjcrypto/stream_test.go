@@ -63,7 +63,7 @@ func TestHashUtils(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.txt")
 		testData := []byte("Hello, World! This is a test file for streaming hash.")
-		if err := os.WriteFile(testFile, testData, 0644); err != nil {
+		if err := os.WriteFile(testFile, testData, 0600); err != nil {
 			t.Fatal(err)
 		}
 
@@ -295,7 +295,7 @@ func TestStreamingEncryption(t *testing.T) {
 		decryptedFile := filepath.Join(tmpDir, "decrypted.txt")
 
 		testData := []byte("这是一个测试文件，用于验证流式加密功能。This is a test file for streaming encryption verification.")
-		if err := os.WriteFile(originalFile, testData, 0644); err != nil {
+		if err := os.WriteFile(originalFile, testData, 0600); err != nil {
 			t.Fatal(err)
 		}
 
@@ -313,7 +313,7 @@ func TestStreamingEncryption(t *testing.T) {
 		}
 
 		// 读取加密文件头部用于调试
-		encData, _ := os.ReadFile(encryptedFile)
+		encData, _ := os.ReadFile(encryptedFile) //nolint:gosec
 		t.Logf("加密文件大小: %d", len(encData))
 
 		// 流式解密
@@ -325,7 +325,7 @@ func TestStreamingEncryption(t *testing.T) {
 		t.Logf("解密完成")
 
 		// 验证解密内容
-		decryptedData, err := os.ReadFile(decryptedFile)
+		decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -359,7 +359,7 @@ func TestStreamingEncryption(t *testing.T) {
 		if _, err := rand.Read(testData); err != nil {
 			t.Fatalf("生成随机数据失败: %v", err)
 		}
-		if err := os.WriteFile(originalFile, testData, 0644); err != nil {
+		if err := os.WriteFile(originalFile, testData, 0600); err != nil {
 			t.Fatal(err)
 		}
 
@@ -375,7 +375,7 @@ func TestStreamingEncryption(t *testing.T) {
 		}
 
 		// 验证
-		decryptedData, err := os.ReadFile(decryptedFile)
+		decryptedData, err := os.ReadFile(decryptedFile) //nolint:gosec
 		if err != nil {
 			t.Fatal(err)
 		}

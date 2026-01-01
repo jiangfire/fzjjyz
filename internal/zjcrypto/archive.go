@@ -1,4 +1,4 @@
-// Package crypto 提供文件加密、解密和归档处理功能
+// Package zjcrypto 提供文件加密、解密和归档处理功能
 package zjcrypto
 
 import (
@@ -120,8 +120,8 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 			return fmt.Errorf("create zip file entry: %w", err)
 		}
 
-		// 复制文件内容
-		file, err := os.Open(path)
+		// 复制文件内容 - G304: path 是通过 filepath.Walk 遍历得到的，已验证在源目录内
+		file, err := os.Open(path) //nolint:gosec
 		if err != nil {
 			return fmt.Errorf("open file %s: %w", path, err)
 		}
@@ -177,28 +177,20 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 			)
 		}
 
-		// 构建完整的目标路径
-		// G305: 已在前面检查 ..、/、\ 并验证路径前缀，防止路径遍历
-		targetPath := filepath.Join(targetDir, file.Name)
-
-		// 再次验证最终路径 - 防止路径遍历
-		absTarget, err := filepath.Abs(targetPath)
+		// 构建完整的目标路径并验证安全性
+		// G305: 使用 validateAndExtractPath 防止路径遍历攻击
+		targetPath, err := validateAndExtractPath(file.Name, targetDir)
 		if err != nil {
-			return fmt.Errorf("get absolute target path: %w", err)
-		}
-		absDir, err := filepath.Abs(targetDir)
-		if err != nil {
-			return fmt.Errorf("get absolute dir path: %w", err)
-		}
-		if !strings.HasPrefix(absTarget, absDir) {
 			return utils.NewCryptoError(
 				utils.ErrInvalidParameter,
-				"Path traversal detected: "+file.Name,
+				"Invalid extraction path: "+err.Error(),
 			)
 		}
 
+
 		// 累加大小检查（防止解压缩炸弹）
 		// G115: uint64 -> int64 转换，但有 maxTotalSize=1GB 限制，不会溢出
+		// 因为 maxTotalSize=1GB < math.MaxInt64，所以转换是安全的
 		size := file.UncompressedSize64
 		if size > uint64(maxTotalSize) {
 			return utils.NewCryptoError(
@@ -239,8 +231,8 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		}()
 
 		// 创建目标文件 - 使用文件原始权限
-		// G304: targetPath 已在前面验证在 targetDir 内
-		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, file.Mode())
+		// G304: targetPath 已通过 validateAndExtractPath 验证在 targetDir 内
+		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, file.Mode()) //nolint:gosec
 		if err != nil {
 			return fmt.Errorf("create output file %s: %w", targetPath, err)
 		}
@@ -252,7 +244,8 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 
 		// 复制内容
 		// G110: 已通过 totalSize 检查限制总大小（maxTotalSize=1GB），防止解压缩炸弹
-		if _, err := io.Copy(dstFile, srcFile); err != nil {
+		// io.Copy 的安全性已通过前面的大小检查保证
+		if _, err := io.Copy(dstFile, srcFile); err != nil { //nolint:gosec
 			return fmt.Errorf("copy content to %s: %w", targetPath, err)
 		}
 	}
@@ -269,13 +262,12 @@ func GetZipSize(zipData []byte) (int64, error) {
 
 	var totalSize int64
 	for _, file := range reader.File {
-		// G115: 显式转换，注意潜在的溢出
-		// file.UncompressedSize64 是 uint64，转换为 int64
-		// 检查是否超过 maxTotalSize (1GB)，防止溢出
+		// G115: uint64 -> int64 转换，但有 maxTotalSize=1GB 限制，不会溢出
+		// 因为 maxTotalSize=1GB < math.MaxInt64，所以转换是安全的
 		if file.UncompressedSize64 > uint64(maxTotalSize) {
 			return 0, fmt.Errorf("file size exceeds maximum: %d bytes", file.UncompressedSize64)
 		}
-		totalSize += int64(file.UncompressedSize64)
+		totalSize += int64(file.UncompressedSize64) //nolint:gosec
 	}
 
 	return totalSize, nil

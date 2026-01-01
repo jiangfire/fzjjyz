@@ -1,0 +1,594 @@
+# 安装指南
+
+本指南将帮助您在不同平台上安装和配置 fzj。
+
+## 📋 系统要求
+
+### 最低要求
+- **Go**: 1.25.4 或更高版本
+- **内存**: 256 MB
+- **磁盘空间**: 10 MB
+- **操作系统**: Windows 10+, Linux, macOS 10.15+
+
+### 推荐配置
+- **Go**: 1.26+
+- **内存**: 512 MB
+- **磁盘空间**: 50 MB（包含测试数据）
+- **存储**: SSD（提高文件操作速度）
+
+### 检查 Go 版本
+```bash
+go version
+```
+
+如果未安装 Go 或版本过低，请访问 [Go 官网](https://go.dev/dl/) 下载安装。
+
+---
+
+## 📥 安装方式
+
+### 方式 1: 从源码构建（推荐）
+
+这是最灵活的安装方式，适合开发者和高级用户。
+
+#### 步骤 1: 获取源码
+
+```bash
+# 使用 Git 克隆（推荐）
+git clone https://codeberg.org/jiangfire/fzj
+cd fzj
+
+# 或者下载发布包
+# 访问 https://codeberg.org/jiangfire/fzj/releases
+# 下载并解压
+```
+
+#### 步骤 2: 构建二进制
+
+```bash
+# Linux / macOS
+go build -o fzj ./cmd/fzj
+
+# Windows
+go build -o fzj.exe ./cmd/fzj
+```
+
+**构建选项**:
+```bash
+# 优化构建（减小体积）
+go build -ldflags="-s -w" -o fzj ./cmd/fzj
+
+# 调试构建（包含调试信息）
+go build -gcflags="all=-N -l" -o fzj_debug ./cmd/fzj
+
+# 跨平台构建
+GOOS=linux GOARCH=amd64 go build -o fzj_linux ./cmd/fzj
+GOOS=windows GOARCH=amd64 go build -o fzj_windows.exe ./cmd/fzj
+GOOS=darwin GOARCH=amd64 go build -o fzj_macos ./cmd/fzj
+```
+
+#### 步骤 3: 验证安装
+
+```bash
+# Linux / macOS
+./fzj version
+
+# Windows
+.\fzj.exe version
+```
+
+**预期输出**:
+```
+fzj - 后量子文件加密工具
+版本: 0.1.1
+应用名称: fzj
+描述: 后量子文件加密工具 - 使用 Kyber768 + ECDH + AES-256-GCM + Dilithium3
+```
+
+**v0.2.0 新增特性**:
+- ✅ 目录加密/解密命令（encrypt-dir, decrypt-dir）
+- ✅ 国际化支持（中英文，自动检测 LANG）
+- ✅ 路径遍历攻击防护
+- ✅ 缓存信息查询（keymanage -a cache-info）
+- ✅ 完善的测试覆盖（>80%）
+
+**v0.1.1 新增特性**:
+- ✅ 智能密钥缓存（TTL + 大小限制）
+- ✅ 并行密钥生成（3x 加速）
+- ✅ 性能基准测试
+- ✅ 代码重构（消除重复代码）
+- ✅ 优化的错误提示
+
+#### 步骤 4: 全局安装（可选）
+
+**Linux / macOS**:
+```bash
+# 复制到系统路径
+sudo cp fzj /usr/local/bin/
+
+# 验证
+which fzj
+fzj version
+```
+
+**Windows (以管理员身份运行)**:
+```cmd
+# 复制到系统路径
+copy fzj.exe C:\Windows\System32\
+
+# 验证
+fzj version
+```
+
+---
+
+### 方式 2: 使用 Go 安装
+
+如果您已经配置好 Go 环境，可以直接安装。
+
+```bash
+# 安装到 GOPATH/bin
+go install codeberg.org/jiangfire/fzj/cmd/fzj@latest
+
+# 验证安装
+fzj version
+```
+
+**注意**: 确保 `$GOPATH/bin` 在您的 `PATH` 环境变量中。
+
+---
+
+### 方式 3: 预编译二进制
+
+适合快速部署，无需编译。
+
+#### 下载地址
+访问 [Releases 页面](https://codeberg.org/jiangfire/fzj/releases) 下载对应平台的预编译二进制：
+
+| 平台 | 文件名 | 架构 |
+|------|--------|------|
+| Windows | `fzj-windows-amd64.exe` | x86-64 |
+| Linux | `fzj-linux-amd64` | x86-64 |
+| macOS | `fzj-darwin-amd64` | x86-64 |
+| macOS (Apple Silicon) | `fzj-darwin-arm64` | ARM64 |
+
+#### 安装步骤
+
+**Linux / macOS**:
+```bash
+# 1. 下载
+wget https://codeberg.org/jiangfire/fzj/releases/download/v0.1.0/fzj-linux-amd64
+
+# 2. 添加执行权限
+chmod +x fzj-linux-amd64
+
+# 3. 重命名（可选）
+mv fzj-linux-amd64 fzj
+
+# 4. 移动到系统路径（可选）
+sudo mv fzj /usr/local/bin/
+
+# 5. 验证
+fzj version
+```
+
+**Windows**:
+```powershell
+# 1. 下载（使用浏览器或 PowerShell）
+Invoke-WebRequest -Uri "https://codeberg.org/jiangfire/fzj/releases/download/v0.1.0/fzj-windows-amd64.exe" -OutFile "fzj.exe"
+
+# 2. 验证
+.\fzj.exe version
+
+# 3. 全局安装（可选，以管理员身份运行）
+copy fzj.exe C:\Windows\System32\
+```
+
+---
+
+## 🔧 平台特定说明
+
+### Windows
+
+#### PowerShell 示例
+```powershell
+# 生成密钥
+.\fzj.exe keygen -d .\keys -n mykey
+
+# 加密文件
+.\fzj.exe encrypt -i secret.txt -o secret.fzj `
+  -p .\keys\mykey_public.pem `
+  -s .\keys\mykey_dilithium_private.pem
+
+# 解密文件
+.\fzj.exe decrypt -i secret.fzj -o recovered.txt `
+  -p .\keys\mykey_private.pem `
+  -s .\keys\mykey_dilithium_public.pem
+```
+
+#### 常见问题
+
+**问题**: PowerShell 执行策略错误
+```powershell
+# 错误信息: 无法加载脚本，因为在此系统上禁止运行脚本
+# 解决方案:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**问题**: Windows Defender 警告
+```
+这是正常的，因为是新发布的命令行工具。
+选择"更多信息" -> "仍要运行"
+```
+
+### Linux
+
+#### Bash 示例
+```bash
+# 添加执行权限
+chmod +x fzj
+
+# 添加到 PATH（临时）
+export PATH=$PATH:$(pwd)
+
+# 添加到 PATH（永久）
+echo 'export PATH=$PATH:/path/to/fzj' >> ~/.bashrc
+source ~/.bashrc
+
+# 或者复制到系统路径
+sudo cp fzj /usr/local/bin/
+```
+
+#### 权限设置
+```bash
+# 如果遇到权限问题
+chmod +x fzj
+
+# 验证
+ls -la fzj
+# 应该显示: -rwxr-xr-x (755)
+```
+
+#### 常见发行版
+
+**Ubuntu / Debian**:
+```bash
+# 安装 Go (如果需要)
+sudo apt update
+sudo apt install golang-go
+
+# 构建
+go build -o fzj ./cmd/fzj
+```
+
+**CentOS / RHEL**:
+```bash
+# 安装 Go (如果需要)
+sudo yum install golang
+
+# 构建
+go build -o fzj ./cmd/fzj
+```
+
+### macOS
+
+#### 基本使用
+```bash
+# 添加执行权限
+chmod +x fzj
+
+# 如果遇到"无法打开"错误
+xattr -d com.apple.quarantine fzj
+
+# 或者在系统偏好设置 -> 安全性与隐私中允许运行
+```
+
+#### Apple Silicon (M1/M2)
+```bash
+# 如果下载的是 Intel 版本，需要 Rosetta 2
+# 或者下载 arm64 版本
+
+# 检查架构
+file fzj
+# 应该显示: Mach-O 64-bit executable arm64
+```
+
+#### 常见问题
+
+**问题**: "无法打开，因为无法验证开发者"
+```
+解决方案 1:
+- 系统偏好设置 -> 安全性与隐私
+- 点击"仍要打开"
+
+解决方案 2:
+xattr -d com.apple.quarantine fzj
+```
+
+---
+
+## ✅ 验证安装
+
+运行以下命令验证安装是否成功：
+
+### 1. 版本检查
+```bash
+fzj version
+```
+**预期输出**: 显示版本号和描述
+
+### 2. 帮助信息
+```bash
+fzj --help
+```
+**预期输出**: 显示所有可用命令
+
+### 3. 快速测试
+```bash
+# 创建临时目录
+mkdir -p /tmp/fzj_test
+cd /tmp/fzj_test
+
+# 生成测试密钥
+fzj keygen -d ./keys -n test
+
+# 创建测试文件
+echo "Hello, fzj!" > hello.txt
+
+# 加密
+fzj encrypt -i hello.txt -o hello.fzj \
+  -p keys/test_public.pem \
+  -s keys/test_dilithium_private.pem
+
+# 解密
+fzj decrypt -i hello.fzj -o hello_decrypted.txt \
+  -p keys/test_private.pem \
+  -s keys/test_dilithium_public.pem
+
+# 验证
+cat hello_decrypted.txt
+# 应该显示: Hello, fzj!
+
+# 清理
+cd ~ && rm -rf /tmp/fzj_test
+```
+
+---
+
+## 🔍 依赖说明
+
+### 自动管理
+
+Go Modules 会自动管理所有依赖。主要依赖包括：
+
+```bash
+# 查看依赖
+go list -m all
+```
+
+**核心依赖**:
+- `github.com/cloudflare/circl v1.6.1` - 后量子密码学库
+- `github.com/spf13/cobra v1.10.2` - CLI 框架
+- `github.com/schollz/progressbar/v3 v3.18.0` - 进度条
+
+### 手动更新依赖
+```bash
+# 更新所有依赖
+go get -u ./...
+
+# 清理未使用的依赖
+go mod tidy
+
+# 验证依赖
+go mod verify
+```
+
+---
+
+## ❓ 常见问题
+
+### Q: 构建失败，提示 "module not found"
+**A**:
+```bash
+# 确保使用 Go 1.25.4+
+go version
+
+# 下载依赖
+go mod download
+
+# 清理并重新构建
+go clean -cache
+go build ./cmd/fzj
+```
+
+### Q: 运行时提示 "permission denied"
+**A**:
+```bash
+# Linux/macOS: 添加执行权限
+chmod +x fzj
+
+# Windows: 以管理员身份运行
+# 或检查文件是否被锁定
+```
+
+### Q: Windows 防火墙警告
+**A**: 这是正常的，因为是命令行工具。选择"允许访问"。
+
+### Q: 如何卸载？
+**A**:
+
+**Linux/macOS**:
+```bash
+# 删除二进制
+sudo rm /usr/local/bin/fzj
+
+# 删除配置文件（如果存在）
+rm -rf ~/.config/fzj/
+```
+
+**Windows**:
+```cmd
+# 删除二进制
+del C:\Windows\System32\fzj.exe
+
+# 删除工作目录（如果存在）
+rmdir /s C:\Users\YourUsername\fzj
+```
+
+### Q: 如何更新到最新版本？
+**A**:
+```bash
+# 方式 1: 重新构建
+cd fzj
+git pull origin main
+go build -o fzj ./cmd/fzj
+
+# 方式 2: 重新下载
+# 访问 Releases 页面下载最新版本
+```
+
+### Q: 遇到 "out of memory" 错误
+**A**:
+- 确保系统至少有 256MB 可用内存
+- 对于超大文件（>1GB），建议使用 64 位系统
+- 关闭其他占用内存的程序
+
+### Q: 加密/解密速度慢
+**A**:
+- 使用 SSD 存储
+- 确保 Go 版本 >= 1.25
+- 检查 CPU 使用率
+- 对于大文件，工具会自动优化
+
+---
+
+## 📚 下一步
+
+安装完成后，您可以：
+
+1. **阅读使用文档**: 查看 [USAGE.md](USAGE.md) 学习如何使用所有命令
+2. **快速开始**: 按照 README.md 的快速开始指南操作
+3. **了解安全**: 阅读 [SECURITY.md](SECURITY.md) 了解安全最佳实践
+4. **开始开发**: 如果您想贡献代码，查看 [DEVELOPMENT.md](DEVELOPMENT.md)
+
+---
+
+## 🆘 获取帮助
+
+如果在安装过程中遇到问题：
+
+1. 查看本文档的常见问题部分
+2. 阅读 [SECURITY.md](SECURITY.md) 了解已知限制
+3. 在项目 [Issues](https://codeberg.org/jiangfire/fzj/issues) 页面搜索或创建 Issue
+4. 加入项目讨论区寻求帮助
+
+---
+
+**版本**: v0.2.0
+**最后更新**: 2025-12-30
+**维护者**: fzj 开发团队
+
+---
+
+## 🆕 v0.2.0 新增功能验证
+
+安装完成后，验证 v0.2.0 新特性：
+
+### 1. 验证目录加密功能
+
+```bash
+# 创建测试目录
+mkdir -p test_project/{sub1,sub2}
+echo "文件1" > test_project/file1.txt
+echo "文件2" > test_project/sub1/file2.txt
+echo "文件3" > test_project/sub2/file3.txt
+
+# 生成测试密钥
+fzj keygen -d ./test_keys -n test
+
+# 加密目录
+fzj encrypt-dir -i test_project -o project.fzj \
+  -p test_keys/test_public.pem \
+  -s test_keys/test_dilithium_private.pem
+
+# 解密目录
+fzj decrypt-dir -i project.fzj -o restored_project \
+  -p test_keys/test_private.pem \
+  -s test_keys/test_dilithium_public.pem
+
+# 验证目录结构
+ls -R restored_project
+```
+
+**预期结果**: 目录结构完整恢复，所有文件内容正确
+
+### 2. 验证国际化支持
+
+```bash
+# 使用中文（默认）
+export LANG=zh_CN
+fzj encrypt --help
+
+# 切换到英文
+export LANG=en_US
+fzj encrypt --help
+```
+
+**预期结果**: 帮助信息根据 LANG 环境变量自动切换语言
+
+### 3. 验证缓存信息查询
+
+```bash
+# 执行一些操作生成缓存
+fzj encrypt -i test_project/file1.txt -o file1.fzj \
+  -p test_keys/test_public.pem \
+  -s test_keys/test_dilithium_private.pem
+
+# 查看缓存信息
+fzj keymanage -a cache-info
+```
+
+**预期输出**: 显示缓存条目、命中率、统计信息
+
+### 4. 验证路径遍历防护
+
+```bash
+# 创建包含恶意路径的 ZIP（测试用）
+# 工具会自动检测并阻止此类攻击
+# 解密恶意文件时会显示安全警告
+```
+
+**预期结果**: 恶意路径被自动检测并拒绝
+
+### 5. 验证测试覆盖
+
+```bash
+# 运行测试
+go test ./internal/crypto/ -v
+go test ./internal/format/ -v
+go test ./internal/i18n/ -v
+```
+
+**预期结果**: 所有测试通过，关键模块覆盖率 >80%
+
+### 6. 清理测试文件
+
+```bash
+# 清理测试数据
+rm -rf test_project test_keys project.fzj restored_project file1.fzj
+```
+
+---
+
+## 📋 版本对比
+
+| 特性 | v0.1.1 | v0.2.0 | 改进 |
+|------|--------|--------|------|
+| 命令数量 | 6个 | 8个 | +2 新命令 |
+| 目录加密 | ❌ | ✅ | 直接支持 |
+| 国际化 | ❌ | ✅ | 中英双语 |
+| 路径防护 | ❌ | ✅ | 安全增强 |
+| 测试覆盖 | ~50% | >80% | 显著提升 |
+| 文档完整性 | 基础 | 完整 | 全面更新 |
+
+**升级建议**: 所有用户建议升级到 v0.2.0，获得目录加密和国际化支持。
