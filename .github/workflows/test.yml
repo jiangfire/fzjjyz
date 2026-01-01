@@ -37,7 +37,7 @@ jobs:
           git diff --exit-code || echo "::warning::Code formatting issues found"
 
       - name: Build
-        run: go build -o fzj ./cmd/fzj
+        run: go build -o fzj ./cmd/fzjjyz
 
       - name: Run help
         run: ./fzj --help
@@ -64,16 +64,16 @@ jobs:
       - name: Cross-compile for major platforms
         run: |
           echo "Building for Linux..."
-          GOOS=linux GOARCH=amd64 go build -o fzj_linux_amd64 ./cmd/fzj
+          GOOS=linux GOARCH=amd64 go build -o fzj_linux_amd64 ./cmd/fzjjyz
 
           echo "Building for Windows..."
-          GOOS=windows GOARCH=amd64 go build -o fzj_windows_amd64.exe ./cmd/fzj
+          GOOS=windows GOARCH=amd64 go build -o fzj_windows_amd64.exe ./cmd/fzjjyz
 
           echo "Building for macOS Intel..."
-          GOOS=darwin GOARCH=amd64 go build -o fzj_darwin_amd64 ./cmd/fzj
+          GOOS=darwin GOARCH=amd64 go build -o fzj_darwin_amd64 ./cmd/fzjjyz
 
           echo "Building for macOS Apple Silicon..."
-          GOOS=darwin GOARCH=arm64 go build -o fzj_darwin_arm64 ./cmd/fzj
+          GOOS=darwin GOARCH=arm64 go build -o fzj_darwin_arm64 ./cmd/fzjjyz
 
           echo "Build completed successfully:"
           ls -lh fzj_*

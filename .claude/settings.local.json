@@ -84,7 +84,8 @@
       "Bash(git describe:*)",
       "Bash(mv:*)",
       "Bash(go install:*)",
-      "Bash(~/go/bin/gosec -config .gosec ./...:*)"
+      "Bash(~/go/bin/gosec -config .gosec ./...:*)",
+      "Bash(make:*)"
     ]
   }
 }

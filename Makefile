@@ -6,7 +6,7 @@
 # 项目信息
 PROJECT_NAME := fzj
 MODULE_NAME := codeberg.org/jiangfire/fzj
-MAIN_PACKAGE := cmd/fzj
+MAIN_PACKAGE := cmd/fzjjyz
 
 # 版本信息 (从 git 获取， fallback 到 main.go 中的版本)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || grep -oP 'Version\s*=\s*"\K[^"]+' cmd/fzjjyz/main.go)

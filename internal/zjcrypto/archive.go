@@ -187,7 +187,6 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 			)
 		}
 
-
 		// 累加大小检查（防止解压缩炸弹）
 		// G115: uint64 -> int64 转换，但有 maxTotalSize=1GB 限制，不会溢出
 		// 因为 maxTotalSize=1GB < math.MaxInt64，所以转换是安全的
