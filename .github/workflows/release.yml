@@ -11,6 +11,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 env:
   GO_VERSION: '1.25'
   PROJECT_NAME: 'fzj'
@@ -140,8 +143,6 @@ jobs:
     needs: [test, build]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
