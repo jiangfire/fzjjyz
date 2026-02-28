@@ -10,6 +10,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 	"github.com/cloudflare/circl/kem"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
 const (
@@ -70,13 +71,13 @@ func calculateHash(data []byte) [32]byte {
 }
 
 // signHash 对哈希进行Dilithium签名.
-func signHash(hash []byte, dilithiumPriv interface{}) ([]byte, error) {
-	return SignHash(hash, dilithiumPriv)
+func signHash(hash []byte, dilithiumPriv *mode3.PrivateKey) ([]byte, error) {
+	return SignHashWithKey(hash, dilithiumPriv)
 }
 
 // verifyHashSignature 验证哈希签名.
-func verifyHashSignature(hash []byte, signature []byte, dilithiumPub interface{}) (bool, error) {
-	return VerifyHashSignature(hash, signature, dilithiumPub)
+func verifyHashSignature(hash []byte, signature []byte, dilithiumPub *mode3.PublicKey) (bool, error) {
+	return VerifyHashSignatureWithKey(hash, signature, dilithiumPub)
 }
 
 // buildFileHeader 构建文件头.
@@ -186,7 +187,7 @@ func writeDecryptedFile(outputPath string, plaintext []byte) error {
 }
 
 // verifyDecryptionIntegrity 验证解密数据的完整性和签名.
-func verifyDecryptionIntegrity(plaintext []byte, header *format.FileHeader, dilithiumPub interface{}) error {
+func verifyDecryptionIntegrity(plaintext []byte, header *format.FileHeader, dilithiumPub *mode3.PublicKey) error {
 	// 验证哈希
 	hash := calculateHash(plaintext)
 	if hash != header.SHA256Hash {
@@ -222,7 +223,7 @@ func EncryptFileCore(
 	inputPath string,
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
-	dilithiumPriv interface{},
+	dilithiumPriv *mode3.PrivateKey,
 ) (header *format.FileHeader, ciphertext []byte, err error) {
 	// G304: inputPath 应由调用方验证
 	plaintext, err := os.ReadFile(inputPath) //nolint:gosec
@@ -287,7 +288,7 @@ func DecryptFileCore(
 	inputPath string,
 	kyberPriv kem.PrivateKey,
 	ecdhPriv *ecdh.PrivateKey,
-	dilithiumPub interface{},
+	dilithiumPub *mode3.PublicKey,
 ) (plaintext []byte, err error) {
 	// 1. 读取并解析文件
 	header, ciphertext, err := parseEncryptedFile(inputPath)

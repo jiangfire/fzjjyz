@@ -288,20 +288,11 @@ func TestKeySizes(t *testing.T) {
 	}
 
 	// 验证实际密钥大小
-	pubBytes, ok := pub.(*mode3.PublicKey)
-	if !ok {
-		t.Fatal("公钥类型错误")
-	}
-	privBytes, ok := priv.(*mode3.PrivateKey)
-	if !ok {
-		t.Fatal("私钥类型错误")
-	}
-
-	if len(pubBytes.Bytes()) != pubSize {
+	if len(pub.Bytes()) != pubSize {
 		t.Errorf("实际公钥字节大小不匹配")
 	}
 
-	if len(privBytes.Bytes()) != privSize {
+	if len(priv.Bytes()) != privSize {
 		t.Errorf("实际私钥字节大小不匹配")
 	}
 }

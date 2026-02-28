@@ -152,6 +152,56 @@ func TestExtractZipToDirectory(t *testing.T) {
 	}
 }
 
+// TestExtractZipToDirectoryTruncatesExistingFile 验证覆盖解压时会截断旧文件内容.
+func TestExtractZipToDirectoryTruncatesExistingFile(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "fzj_test_*")
+	if err != nil {
+		t.Fatalf("创建临时目录失败: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("Warning: failed to remove temp dir: %v", err)
+		}
+	}()
+
+	// 构造仅包含一个短文件内容的 ZIP
+	var zipBuf bytes.Buffer
+	writer := zip.NewWriter(&zipBuf)
+	entry, err := writer.Create("overwrite.txt")
+	if err != nil {
+		t.Fatalf("创建 ZIP 条目失败: %v", err)
+	}
+	if _, err := entry.Write([]byte("short")); err != nil {
+		t.Fatalf("写入 ZIP 条目失败: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("关闭 ZIP 写入器失败: %v", err)
+	}
+
+	targetDir := filepath.Join(tmpDir, "target")
+	if err := os.MkdirAll(targetDir, 0750); err != nil {
+		t.Fatalf("创建目标目录失败: %v", err)
+	}
+
+	// 先写入更长旧内容，若不 O_TRUNC 会残留脏尾部。
+	targetFile := filepath.Join(targetDir, "overwrite.txt")
+	if err := os.WriteFile(targetFile, []byte("this-is-a-long-old-content"), 0600); err != nil {
+		t.Fatalf("写入旧文件失败: %v", err)
+	}
+
+	if err := ExtractZipToDirectory(zipBuf.Bytes(), targetDir); err != nil {
+		t.Fatalf("解压失败: %v", err)
+	}
+
+	content, err := os.ReadFile(targetFile) //nolint:gosec
+	if err != nil {
+		t.Fatalf("读取目标文件失败: %v", err)
+	}
+	if string(content) != "short" {
+		t.Fatalf("覆盖解压后内容错误: 期望 short, 实际 %q", string(content))
+	}
+}
+
 // TestExtractZipToDirectoryPathTraversal 测试路径遍历攻击防护.
 func TestExtractZipToDirectoryPathTraversal(t *testing.T) {
 	// 创建恶意ZIP（包含 .. 路径）

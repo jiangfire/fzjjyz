@@ -8,6 +8,7 @@ import (
 
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
 // LoadHybridPrivateKey loads hybrid private key (eliminates 4 repetitions).
@@ -21,7 +22,7 @@ func LoadHybridPrivateKey(path string) (*zjcrypto.HybridPrivateKey, error) {
 }
 
 // LoadDilithiumVerifyKey loads signature verification public key (eliminates 3 repetitions).
-func LoadDilithiumVerifyKey(path string) (interface{}, error) {
+func LoadDilithiumVerifyKey(path string) (*mode3.PublicKey, error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -44,7 +45,7 @@ func LoadHybridPublicKey(path string) (*zjcrypto.HybridPublicKey, error) {
 }
 
 // LoadDilithiumPrivateKey loads signature private key.
-func LoadDilithiumPrivateKey(path string) (interface{}, error) {
+func LoadDilithiumPrivateKey(path string) (*mode3.PrivateKey, error) {
 	key, err := zjcrypto.LoadDilithiumPrivateKeyCached(path)
 	if err != nil {
 		return nil, fmt.Errorf("load dilithium private key failed: %w",

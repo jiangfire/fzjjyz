@@ -10,6 +10,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 	"github.com/spf13/cobra"
 )
 
@@ -55,14 +56,14 @@ func executeDecryptCommand() error {
 	if err := utils.ValidateInputFile(decryptInput); err != nil {
 		return err
 	}
-	//nolint:wrapcheck
-	if err := utils.CheckOutputConflict(decryptOutput, decryptForce); err != nil {
-		return err
-	}
 
 	// 步骤2: 解析文件头
 	header, err := parseDecryptHeader()
 	if err != nil {
+		return err
+	}
+	//nolint:wrapcheck
+	if err := utils.CheckOutputConflict(decryptOutput, decryptForce); err != nil {
 		return err
 	}
 
@@ -83,7 +84,10 @@ func executeDecryptCommand() error {
 }
 
 func parseDecryptHeader() (*format.FileHeader, error) {
-	headerFile := utils.MustOpen(decryptInput)
+	headerFile, err := os.Open(decryptInput) // #nosec G304 - decryptInput 来自用户输入，已通过前置校验
+	if err != nil {
+		return nil, fmt.Errorf(i18n.T("error.cannot_open_file"), err)
+	}
 	defer func() {
 		_ = headerFile.Close()
 	}()
@@ -101,7 +105,7 @@ func parseDecryptHeader() (*format.FileHeader, error) {
 	return header, nil
 }
 
-func loadDecryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPrivateKey, interface{}, error) {
+func loadDecryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPrivateKey, *mode3.PublicKey, error) {
 	reporter.Step("progress.loading_keys")
 
 	// 加载私钥
@@ -132,7 +136,7 @@ func loadDecryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPrivateK
 func executeDecrypt(
 	reporter *utils.ProgressReporter,
 	hybridPriv *zjcrypto.HybridPrivateKey,
-	dilithiumPub interface{},
+	dilithiumPub *mode3.PublicKey,
 	header *format.FileHeader,
 ) error {
 	// 显示详细信息
@@ -146,13 +150,19 @@ func executeDecrypt(
 	reporter.InfoBool("status.streaming_mode", decryptStreaming)
 
 	// 计算缓冲区大小
-	bufSize := getDecryptBufferSize()
+	bufSize := calculateBufferSizeFromFile(decryptInput, decryptBufferSize)
 	reporter.Info("file_info.buffer_size", bufSize/1024)
 
 	// 执行解密
 	reporter.Step("progress.decrypting")
-	decryptFunc := getDecryptFunction(hybridPriv, dilithiumPub, bufSize)
-	if err := decryptFunc(); err != nil {
+	if err := runDecryptWithMode(
+		decryptInput,
+		decryptOutput,
+		hybridPriv,
+		dilithiumPub,
+		decryptStreaming,
+		bufSize,
+	); err != nil {
 		reporter.Failed()
 		return fmt.Errorf("decrypt failed: %w",
 			i18n.TranslateError("error.decrypt_failed", err))
@@ -164,34 +174,6 @@ func executeDecrypt(
 	reporter.Done()
 
 	return nil
-}
-
-func getDecryptBufferSize() int {
-	if decryptBufferSize > 0 {
-		return decryptBufferSize * 1024
-	}
-	size, _ := utils.GetFileSize(decryptInput)
-	return zjcrypto.OptimalBufferSize(size)
-}
-
-func getDecryptFunction(hybridPriv *zjcrypto.HybridPrivateKey, dilithiumPub interface{}, bufSize int) func() error {
-	if decryptStreaming {
-		return func() error {
-			return zjcrypto.DecryptFileStreaming(
-				decryptInput, decryptOutput,
-				hybridPriv.Kyber, hybridPriv.ECDH,
-				dilithiumPub,
-				bufSize,
-			)
-		}
-	}
-	return func() error {
-		return zjcrypto.DecryptFile(
-			decryptInput, decryptOutput,
-			hybridPriv.Kyber, hybridPriv.ECDH,
-			dilithiumPub,
-		)
-	}
 }
 
 func showDecryptResult(header *format.FileHeader) error {

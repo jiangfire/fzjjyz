@@ -17,13 +17,14 @@ func validateFilePathInDirectory(path, baseDir string) (string, error) {
 		return "", fmt.Errorf("base directory cannot be empty")
 	}
 
-	// 构建完整路径
-	fullPath := filepath.Join(baseDir, path)
+	// 不允许绝对路径，防止绕过基础目录
+	if filepath.IsAbs(path) {
+		return "", fmt.Errorf("absolute path is not allowed: %s", path)
+	}
 
-	// 转换为绝对路径
-	absPath, err := filepath.Abs(fullPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to get absolute path: %w", err)
+	cleanPath := filepath.Clean(path)
+	if cleanPath == ".." || strings.HasPrefix(cleanPath, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path traversal detected: %s", path)
 	}
 
 	absBase, err := filepath.Abs(baseDir)
@@ -31,14 +32,17 @@ func validateFilePathInDirectory(path, baseDir string) (string, error) {
 		return "", fmt.Errorf("failed to get absolute base: %w", err)
 	}
 
-	// 验证路径在基础目录内
-	if !strings.HasPrefix(absPath, absBase) {
-		return "", fmt.Errorf("path escapes base directory: %s", path)
+	absPath, err := filepath.Abs(filepath.Join(absBase, cleanPath))
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	// 检查路径遍历字符
-	if strings.Contains(path, "..") {
-		return "", fmt.Errorf("path traversal detected: %s", path)
+	inBase, err := isSubPath(absBase, absPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to validate path scope: %w", err)
+	}
+	if !inBase {
+		return "", fmt.Errorf("path escapes base directory: %s", path)
 	}
 
 	return absPath, nil
@@ -47,4 +51,20 @@ func validateFilePathInDirectory(path, baseDir string) (string, error) {
 // validateAndExtractPath 安全地验证解压路径.
 func validateAndExtractPath(path, targetDir string) (string, error) {
 	return validateFilePathInDirectory(path, targetDir)
+}
+
+// isSubPath 检查 target 是否位于 base 目录内（含 base 本身）.
+func isSubPath(base, target string) (bool, error) {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return false, err
+	}
+	rel = filepath.Clean(rel)
+	if rel == "." {
+		return true, nil
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false, nil
+	}
+	return true, nil
 }

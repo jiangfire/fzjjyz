@@ -12,6 +12,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/cloudflare/circl/kem"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 	"github.com/spf13/cobra"
 )
 
@@ -102,12 +103,12 @@ func prepareKeygen() ([]string, error) {
 }
 
 type keyPair struct {
-	kyberPub      interface{}
-	kyberPriv     interface{}
-	ecdhPub       interface{}
-	ecdhPriv      interface{}
-	dilithiumPub  interface{}
-	dilithiumPriv interface{}
+	kyberPub      kem.PublicKey
+	kyberPriv     kem.PrivateKey
+	ecdhPub       *ecdh.PublicKey
+	ecdhPriv      *ecdh.PrivateKey
+	dilithiumPub  *mode3.PublicKey
+	dilithiumPriv *mode3.PrivateKey
 }
 
 func generateKeys(reporter *utils.ProgressReporter) (*keyPair, error) {
@@ -133,7 +134,7 @@ func generateKeys(reporter *utils.ProgressReporter) (*keyPair, error) {
 
 	// 3. Dilithium
 	reporter.Step("progress.generating_dilithium")
-	dilithiumPub, dilithiumPriv, err := zjcrypto.GenerateDilithiumKeys()
+	dilithiumPub, dilithiumPriv, err := zjcrypto.GenerateDilithiumKeyPair()
 	if err != nil {
 		reporter.Failed()
 		return nil, fmt.Errorf("dilithium key generation failed: %w",
@@ -153,13 +154,14 @@ func saveKeys(reporter *utils.ProgressReporter, keys *keyPair, paths []string) e
 
 	pubPath, privPath, dilithiumPubPath, dilithiumPrivPath := paths[0], paths[1], paths[2], paths[3]
 
-	// 保存 Kyber+ECDH - 需要类型转换
-	kyberPub := keys.kyberPub.(kem.PublicKey)
-	kyberPriv := keys.kyberPriv.(kem.PrivateKey)
-	ecdhPub := keys.ecdhPub.(*ecdh.PublicKey)
-	ecdhPriv := keys.ecdhPriv.(*ecdh.PrivateKey)
-
-	if err := zjcrypto.SaveKeyFiles(kyberPub, ecdhPub, kyberPriv, ecdhPriv, pubPath, privPath); err != nil {
+	if err := zjcrypto.SaveKeyFiles(
+		keys.kyberPub,
+		keys.ecdhPub,
+		keys.kyberPriv,
+		keys.ecdhPriv,
+		pubPath,
+		privPath,
+	); err != nil {
 		reporter.Failed()
 		return fmt.Errorf("save keys failed: %w",
 			i18n.TranslateError("error.save_keys_failed", err))

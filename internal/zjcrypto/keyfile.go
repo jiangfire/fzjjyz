@@ -168,24 +168,16 @@ type DilithiumKeyPair struct {
 }
 
 // ExportDilithiumKeys 导出 Dilithium3 密钥对到 PEM 格式.
-func ExportDilithiumKeys(pub interface{}, priv interface{}) (*DilithiumKeyPair, error) {
-	// 确保公钥是 Dilithium3 类型
-	pubKey, ok := pub.(*mode3.PublicKey)
-	if !ok {
+func ExportDilithiumKeys(pub *mode3.PublicKey, priv *mode3.PrivateKey) (*DilithiumKeyPair, error) {
+	if pub == nil || priv == nil {
 		return nil, utils.NewCryptoError(
 			utils.ErrInvalidKey,
-			"Invalid Dilithium3 public key type",
+			"Dilithium keys cannot be nil",
 		)
 	}
 
-	// 确保私钥是 Dilithium3 类型
-	privKey, ok := priv.(*mode3.PrivateKey)
-	if !ok {
-		return nil, utils.NewCryptoError(
-			utils.ErrInvalidKey,
-			"Invalid Dilithium3 private key type",
-		)
-	}
+	pubKey := pub
+	privKey := priv
 
 	// 导出公钥
 	pubBytes := pubKey.Bytes()
@@ -208,7 +200,7 @@ func ExportDilithiumKeys(pub interface{}, priv interface{}) (*DilithiumKeyPair, 
 }
 
 // ImportDilithiumKeys 从 PEM 格式导入 Dilithium3 密钥对.
-func ImportDilithiumKeys(pubPEM, privPEM []byte) (interface{}, interface{}, error) {
+func ImportDilithiumKeys(pubPEM, privPEM []byte) (*mode3.PublicKey, *mode3.PrivateKey, error) {
 	// 解析公钥
 	pubBlock, _ := pem.Decode(pubPEM)
 	if pubBlock == nil || pubBlock.Type != "DILITHIUM3 PUBLIC KEY" {
@@ -245,7 +237,7 @@ func ImportDilithiumKeys(pubPEM, privPEM []byte) (interface{}, interface{}, erro
 }
 
 // LoadDilithiumKeys 从文件加载 Dilithium3 密钥对.
-func LoadDilithiumKeys(pubPath, privPath string) (interface{}, interface{}, error) {
+func LoadDilithiumKeys(pubPath, privPath string) (*mode3.PublicKey, *mode3.PrivateKey, error) {
 	// G304: 调用方应验证路径安全性
 	pubPEM, err := os.ReadFile(pubPath) //nolint:gosec
 	if err != nil {
@@ -262,7 +254,7 @@ func LoadDilithiumKeys(pubPath, privPath string) (interface{}, interface{}, erro
 }
 
 // LoadDilithiumPublicKey 只加载 Dilithium 公钥.
-func LoadDilithiumPublicKey(pubPath string) (interface{}, error) {
+func LoadDilithiumPublicKey(pubPath string) (*mode3.PublicKey, error) {
 	// G304: 调用方应验证路径安全性
 	pubPEM, err := os.ReadFile(pubPath) //nolint:gosec
 	if err != nil {
@@ -289,7 +281,7 @@ func LoadDilithiumPublicKey(pubPath string) (interface{}, error) {
 }
 
 // LoadDilithiumPrivateKey 只加载 Dilithium 私钥.
-func LoadDilithiumPrivateKey(privPath string) (interface{}, error) {
+func LoadDilithiumPrivateKey(privPath string) (*mode3.PrivateKey, error) {
 	// G304: 调用方应验证路径安全性
 	privPEM, err := os.ReadFile(privPath) //nolint:gosec
 	if err != nil {
@@ -403,12 +395,15 @@ func LoadPrivateKeyCached(path string) (*HybridPrivateKey, error) {
 }
 
 // LoadDilithiumPublicKeyCached 带缓存的 Dilithium 公钥加载（支持TTL和大小限制）.
-func LoadDilithiumPublicKeyCached(path string) (interface{}, error) {
+func LoadDilithiumPublicKeyCached(path string) (*mode3.PublicKey, error) {
 	cacheKey := "dilithium_pub:" + path
 	if cached, ok := keyCache.Load(cacheKey); ok {
 		entry := cached.(*keyCacheEntry)
 		if time.Since(entry.createdAt) < entry.ttl {
-			return entry.key, nil
+			pubKey, ok := entry.key.(*mode3.PublicKey)
+			if ok {
+				return pubKey, nil
+			}
 		}
 		keyCache.Delete(cacheKey)
 	}
@@ -429,12 +424,15 @@ func LoadDilithiumPublicKeyCached(path string) (interface{}, error) {
 }
 
 // LoadDilithiumPrivateKeyCached 带缓存的 Dilithium 私钥加载（支持TTL和大小限制）.
-func LoadDilithiumPrivateKeyCached(path string) (interface{}, error) {
+func LoadDilithiumPrivateKeyCached(path string) (*mode3.PrivateKey, error) {
 	cacheKey := "dilithium_priv:" + path
 	if cached, ok := keyCache.Load(cacheKey); ok {
 		entry := cached.(*keyCacheEntry)
 		if time.Since(entry.createdAt) < entry.ttl {
-			return entry.key, nil
+			privKey, ok := entry.key.(*mode3.PrivateKey)
+			if ok {
+				return privKey, nil
+			}
 		}
 		keyCache.Delete(cacheKey)
 	}
@@ -491,7 +489,7 @@ func GetCacheInfo() (total int, expired int, estimatedSize int) {
 }
 
 // SaveDilithiumKeys 保存 Dilithium3 密钥对到文件.
-func SaveDilithiumKeys(pub interface{}, priv interface{}, pubPath, privPath string) error {
+func SaveDilithiumKeys(pub *mode3.PublicKey, priv *mode3.PrivateKey, pubPath, privPath string) error {
 	keyPair, err := ExportDilithiumKeys(pub, priv)
 	if err != nil {
 		return err

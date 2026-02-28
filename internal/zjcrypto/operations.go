@@ -5,6 +5,7 @@ import (
 
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 	"github.com/cloudflare/circl/kem"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
 // EncryptFile 加密文件
@@ -23,7 +24,7 @@ func EncryptFile(
 	inputPath, outputPath string,
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
-	dilithiumPriv interface{},
+	dilithiumPriv *mode3.PrivateKey,
 ) error {
 	// 调用核心加密逻辑
 	header, ciphertext, err := EncryptFileCore(inputPath, kyberPub, ecdhPub, dilithiumPriv)
@@ -60,7 +61,7 @@ func DecryptFile(
 	inputPath, outputPath string,
 	kyberPriv kem.PrivateKey,
 	ecdhPriv *ecdh.PrivateKey,
-	dilithiumPub interface{},
+	dilithiumPub *mode3.PublicKey,
 ) error {
 	// 调用核心解密逻辑
 	plaintext, err := DecryptFileCore(inputPath, kyberPriv, ecdhPriv, dilithiumPub)

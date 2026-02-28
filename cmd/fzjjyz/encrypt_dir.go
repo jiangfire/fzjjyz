@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
 	"github.com/spf13/cobra"
@@ -49,19 +50,15 @@ func newEncryptDirCmd() *cobra.Command {
 //nolint:funlen
 func runEncryptDir(_ *cobra.Command, _ []string) error {
 	// 验证源目录
-	dirInfo, err := os.Stat(encryptDirInput)
-	if err != nil {
-		return fmt.Errorf(i18n.T("error.source_dir_not_exists"), encryptDirInput)
-	}
-	if !dirInfo.IsDir() {
-		return fmt.Errorf(i18n.T("error.input_not_dir"), encryptDirInput)
+	//nolint:wrapcheck
+	if err := utils.ValidateInputDir(encryptDirInput); err != nil {
+		return err
 	}
 
 	// 检查输出文件是否已存在
-	if !encryptDirForce {
-		if _, err := os.Stat(encryptDirOutput); err == nil {
-			return fmt.Errorf(i18n.T("error.output_file_exists"), encryptDirOutput)
-		}
+	//nolint:wrapcheck
+	if err := utils.CheckOutputConflict(encryptDirOutput, encryptDirForce); err != nil {
+		return err
 	}
 
 	// 显示进度
@@ -91,18 +88,18 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 
 	// [2/4] 加载密钥
 	fmt.Printf("[2/4] %s ", i18n.T("progress.loading_keys"))
-	hybridPub, err := zjcrypto.LoadPublicKeyCached(encryptDirPubKey)
+	hybridPub, err := utils.LoadHybridPublicKey(encryptDirPubKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return fmt.Errorf("load public key failed: %w",
-			i18n.TranslateError("error.load_public_key_failed", err, encryptDirPubKey))
+		//nolint:wrapcheck
+		return err
 	}
 
-	dilithiumPriv, err := zjcrypto.LoadDilithiumPrivateKeyCached(encryptDirSignKey)
+	dilithiumPriv, err := utils.LoadDilithiumPrivateKey(encryptDirSignKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return fmt.Errorf("load sign key failed: %w",
-			i18n.TranslateError("error.load_sign_key_failed", err, encryptDirSignKey))
+		//nolint:wrapcheck
+		return err
 	}
 	fmt.Println(i18n.T("status.done"))
 
@@ -110,7 +107,22 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 	fmt.Printf("[3/4] %s ", i18n.T("progress.encrypting"))
 
 	// 临时保存ZIP到文件（以便复用现有加密流程）
-	tempZipPath := encryptDirOutput + ".tmp.zip"
+	tempZipFile, err := os.CreateTemp(filepath.Dir(encryptDirOutput), "fzjjyz-encrypt-*.zip")
+	if err != nil {
+		fmt.Println(i18n.T("status.failed"))
+		return fmt.Errorf("temp file failed: %w",
+			i18n.TranslateError("error.temp_file_failed", err))
+	}
+	tempZipPath := tempZipFile.Name()
+	if closeErr := tempZipFile.Close(); closeErr != nil {
+		fmt.Println(i18n.T("status.failed"))
+		return fmt.Errorf("temp file failed: %w",
+			i18n.TranslateError("error.temp_file_failed", closeErr))
+	}
+	defer func() {
+		_ = os.Remove(tempZipPath)
+	}()
+
 	if err := os.WriteFile(tempZipPath, zipData, 0600); err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("temp file failed: %w",
@@ -118,39 +130,20 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 	}
 
 	// 确定缓冲区大小
-	var bufSize int
-	if encryptDirBufferSize > 0 {
-		bufSize = encryptDirBufferSize * 1024
-	} else {
-		bufSize = zjcrypto.OptimalBufferSize(int64(zipSize))
-	}
+	bufSize := calculateBufferSizeFromLength(int64(zipSize), encryptDirBufferSize)
 
 	if verbose {
 		fmt.Printf(i18n.T("file_info.buffer_size")+"\n", bufSize/1024)
 	}
 
-	// 执行加密（复用现有流式加密）
-	var encryptFunc func() error
-	if encryptDirStreaming {
-		encryptFunc = func() error {
-			return zjcrypto.EncryptFileStreaming(
-				tempZipPath, encryptDirOutput,
-				hybridPub.Kyber, hybridPub.ECDH,
-				dilithiumPriv,
-				bufSize,
-			)
-		}
-	} else {
-		encryptFunc = func() error {
-			return zjcrypto.EncryptFile(
-				tempZipPath, encryptDirOutput,
-				hybridPub.Kyber, hybridPub.ECDH,
-				dilithiumPriv,
-			)
-		}
-	}
-
-	if err := encryptFunc(); err != nil {
+	if err := runEncryptWithMode(
+		tempZipPath,
+		encryptDirOutput,
+		hybridPub,
+		dilithiumPriv,
+		encryptDirStreaming,
+		bufSize,
+	); err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("encrypt failed: %w",
 			i18n.TranslateError("error.encrypt_failed", err))
@@ -171,11 +164,6 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 			zipSize,
 			filepath.Base(encryptDirOutput), encryptedInfo.Size(),
 			float64(encryptedInfo.Size())/float64(zipSize)*100))
-
-	// 清理临时文件（忽略错误）
-	if removeErr := os.Remove(tempZipPath); removeErr != nil {
-		_ = removeErr // 忽略清理错误
-	}
 
 	return nil
 }

@@ -80,6 +80,28 @@ func TestCLIIntegration(t *testing.T) {
 		t.Log("✅ 测试文件创建成功")
 	})
 
+	t.Run("2.1 默认输出冲突-加密", func(t *testing.T) {
+		// 预创建默认输出文件 test.txt.fzj，验证未加 --force 时会被正确拦截。
+		if err := os.WriteFile(encryptedFile, []byte("conflict"), 0644); err != nil {
+			t.Fatalf("创建冲突文件失败: %v", err)
+		}
+		defer func() {
+			_ = os.Remove(encryptedFile)
+		}()
+
+		cmd := exec.Command(executable, "encrypt",
+			"-i", testFile,
+			"-p", pubKey,
+			"-s", dilithiumPrivKey,
+		) // #nosec G204 - 测试环境执行命令
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("默认输出冲突场景应失败，但成功了。输出: %s", output)
+		}
+
+		t.Logf("✅ 默认输出冲突已拦截（加密）: %s", output)
+	})
+
 	t.Run("3. 加密文件", func(t *testing.T) {
 		cmd := exec.Command(executable, "encrypt",
 			"-i", testFile,
@@ -99,6 +121,21 @@ func TestCLIIntegration(t *testing.T) {
 		}
 
 		t.Logf("✅ 加密成功\n输出: %s", output)
+	})
+
+	t.Run("3.1 默认输出冲突-解密", func(t *testing.T) {
+		cmd := exec.Command(executable, "decrypt",
+			"-i", encryptedFile,
+			"-p", privKey,
+			"-s", dilithiumPubKey,
+		) // #nosec G204 - 测试环境执行命令
+		cmd.Dir = testDir // 让默认输出 "test.txt" 指向已存在的原文件
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			t.Fatalf("默认输出冲突场景应失败，但成功了。输出: %s", output)
+		}
+
+		t.Logf("✅ 默认输出冲突已拦截（解密）: %s", output)
 	})
 
 	t.Run("4. 解密文件", func(t *testing.T) {

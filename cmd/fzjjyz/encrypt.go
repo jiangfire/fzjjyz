@@ -9,6 +9,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 	"github.com/spf13/cobra"
 )
 
@@ -55,13 +56,13 @@ func executeEncryptCommand() error {
 	if err := utils.ValidateInputFile(encryptInput); err != nil {
 		return err
 	}
+
+	// 步骤2: 准备输出路径
+	prepareEncryptOutput()
 	//nolint:wrapcheck
 	if err := utils.CheckOutputConflict(encryptOutput, encryptForce); err != nil {
 		return err
 	}
-
-	// 步骤2: 准备输出路径
-	prepareEncryptOutput()
 
 	// 步骤3: 加载密钥
 	reporter := utils.NewProgressReporter(3, verbose)
@@ -85,7 +86,7 @@ func prepareEncryptOutput() {
 	}
 }
 
-func loadEncryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPublicKey, interface{}, error) {
+func loadEncryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPublicKey, *mode3.PrivateKey, error) {
 	reporter.Step("progress.loading_keys")
 
 	// 加载公钥
@@ -111,7 +112,7 @@ func loadEncryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPublicKe
 func executeEncrypt(
 	reporter *utils.ProgressReporter,
 	hybridPub *zjcrypto.HybridPublicKey,
-	dilithiumPriv interface{},
+	dilithiumPriv *mode3.PrivateKey,
 ) error {
 	// 显示详细信息
 	reporter.InfoString("file_info.original_file", encryptInput)
@@ -121,13 +122,19 @@ func executeEncrypt(
 	reporter.InfoBool("status.streaming_mode", encryptStreaming)
 
 	// 计算缓冲区大小
-	bufSize := getEncryptBufferSize()
+	bufSize := calculateBufferSizeFromFile(encryptInput, encryptBufferSize)
 	reporter.Info("file_info.buffer_size", bufSize/1024)
 
 	// 执行加密
 	reporter.Step("progress.encrypting")
-	encryptFunc := getEncryptFunction(hybridPub, dilithiumPriv, bufSize)
-	if err := encryptFunc(); err != nil {
+	if err := runEncryptWithMode(
+		encryptInput,
+		encryptOutput,
+		hybridPub,
+		dilithiumPriv,
+		encryptStreaming,
+		bufSize,
+	); err != nil {
 		reporter.Failed()
 		return fmt.Errorf("encrypt failed: %w",
 			i18n.TranslateError("error.encrypt_failed", err))
@@ -139,34 +146,6 @@ func executeEncrypt(
 	reporter.Done()
 
 	return nil
-}
-
-func getEncryptBufferSize() int {
-	if encryptBufferSize > 0 {
-		return encryptBufferSize * 1024
-	}
-	size, _ := utils.GetFileSize(encryptInput)
-	return zjcrypto.OptimalBufferSize(size)
-}
-
-func getEncryptFunction(hybridPub *zjcrypto.HybridPublicKey, dilithiumPriv interface{}, bufSize int) func() error {
-	if encryptStreaming {
-		return func() error {
-			return zjcrypto.EncryptFileStreaming(
-				encryptInput, encryptOutput,
-				hybridPub.Kyber, hybridPub.ECDH,
-				dilithiumPriv,
-				bufSize,
-			)
-		}
-	}
-	return func() error {
-		return zjcrypto.EncryptFile(
-			encryptInput, encryptOutput,
-			hybridPub.Kyber, hybridPub.ECDH,
-			dilithiumPriv,
-		)
-	}
 }
 
 func showEncryptResult() error {

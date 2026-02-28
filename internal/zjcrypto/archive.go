@@ -219,33 +219,8 @@ func ExtractZipToDirectory(zipData []byte, targetDir string) error {
 		}
 
 		// 打开ZIP中的文件
-		srcFile, err := file.Open()
-		if err != nil {
-			return fmt.Errorf("open zip entry %s: %w", file.Name, err)
-		}
-		defer func() {
-			if closeErr := srcFile.Close(); closeErr != nil && err == nil {
-				err = closeErr
-			}
-		}()
-
-		// 创建目标文件 - 使用文件原始权限
-		// G304: targetPath 已通过 validateAndExtractPath 验证在 targetDir 内
-		dstFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY, file.Mode()) //nolint:gosec
-		if err != nil {
-			return fmt.Errorf("create output file %s: %w", targetPath, err)
-		}
-		defer func() {
-			if closeErr := dstFile.Close(); closeErr != nil && err == nil {
-				err = closeErr
-			}
-		}()
-
-		// 复制内容
-		// G110: 已通过 totalSize 检查限制总大小（maxTotalSize=1GB），防止解压缩炸弹
-		// io.Copy 的安全性已通过前面的大小检查保证
-		if _, err := io.Copy(dstFile, srcFile); err != nil { //nolint:gosec
-			return fmt.Errorf("copy content to %s: %w", targetPath, err)
+		if err := extractZipFile(file, targetPath); err != nil {
+			return err
 		}
 	}
 
@@ -272,6 +247,39 @@ func GetZipSize(zipData []byte) (int64, error) {
 	return totalSize, nil
 }
 
+// extractZipFile 将单个 ZIP 条目解压到目标文件，确保每次循环及时释放文件句柄。
+func extractZipFile(file *zip.File, targetPath string) error {
+	srcFile, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("open zip entry %s: %w", file.Name, err)
+	}
+	defer func() {
+		_ = srcFile.Close()
+	}()
+
+	// 创建目标文件 - 使用 O_TRUNC 避免覆盖写时残留旧数据
+	// G304: targetPath 已通过 validateAndExtractPath 验证在 targetDir 内
+	dstFile, err := os.OpenFile(
+		targetPath,
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		file.Mode(),
+	) //nolint:gosec
+	if err != nil {
+		return fmt.Errorf("create output file %s: %w", targetPath, err)
+	}
+	defer func() {
+		_ = dstFile.Close()
+	}()
+
+	// G110: 已通过 totalSize 检查限制总大小（maxTotalSize=1GB），防止解压缩炸弹
+	// io.Copy 的安全性已通过前面的大小检查保证
+	if _, err := io.Copy(dstFile, srcFile); err != nil { //nolint:gosec
+		return fmt.Errorf("copy content to %s: %w", targetPath, err)
+	}
+
+	return nil
+}
+
 // CountZipFiles 统计ZIP中的文件数量.
 func CountZipFiles(zipData []byte) (int, error) {
 	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
@@ -294,17 +302,27 @@ func handleSymlink(path, absSource string, followSymlinks bool) (os.FileInfo, er
 		return nil, fmt.Errorf("readlink %s: %w", path, err)
 	}
 
+	// 处理相对符号链接目标（相对于链接所在目录）
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(path), target)
+	}
+
 	// 验证目标在源目录内，防止符号链接指向外部
 	absTarget, err := filepath.Abs(target)
 	if err != nil {
 		return nil, fmt.Errorf("abs path %s: %w", target, err)
 	}
-	if !strings.HasPrefix(absTarget, absSource) {
+
+	inBase, err := isSubPath(absSource, absTarget)
+	if err != nil {
+		return nil, fmt.Errorf("validate symlink target scope: %w", err)
+	}
+	if !inBase {
 		return nil, fmt.Errorf("symlink target outside source directory: %s", target)
 	}
 
 	// 获取目标信息
-	info, err := os.Stat(target)
+	info, err := os.Stat(absTarget)
 	if err != nil {
 		return nil, fmt.Errorf("stat symlink target %s: %w", target, err)
 	}

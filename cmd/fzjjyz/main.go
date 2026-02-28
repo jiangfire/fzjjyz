@@ -9,9 +9,15 @@ import (
 
 // 版本信息.
 const (
-	Version     = "0.1.0"
 	AppName     = "fzjjyz"
 	Description = "后量子文件加密工具 - 使用 Kyber768 + ECDH + AES-256-GCM + Dilithium3"
+)
+
+// 这些变量会在发布构建时通过 -ldflags -X 注入。
+var (
+	Version   = "1.0.1"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
 )
 
 // 根命令（文本将在 init 中通过 i18n 翻译）.

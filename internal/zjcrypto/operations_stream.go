@@ -7,6 +7,7 @@ import (
 
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 	"github.com/cloudflare/circl/kem"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
 // EncryptFileStreaming 流式加密文件
@@ -31,7 +32,7 @@ func EncryptFileStreaming(
 	inputPath, outputPath string,
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
-	dilithiumPriv interface{},
+	dilithiumPriv *mode3.PrivateKey,
 	bufferSize int,
 ) error {
 	encryptor, err := NewStreamingEncryptor(kyberPub, ecdhPub, dilithiumPriv, bufferSize)
@@ -63,7 +64,7 @@ func DecryptFileStreaming(
 	inputPath, outputPath string,
 	kyberPriv kem.PrivateKey,
 	ecdhPriv *ecdh.PrivateKey,
-	dilithiumPub interface{},
+	dilithiumPub *mode3.PublicKey,
 	bufferSize int,
 ) error {
 	decryptor, err := NewStreamingDecryptor(kyberPriv, ecdhPriv, dilithiumPub, bufferSize)
@@ -79,7 +80,7 @@ func EncryptFileStreamingAuto(
 	inputPath, outputPath string,
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
-	dilithiumPriv interface{},
+	dilithiumPriv *mode3.PrivateKey,
 ) error {
 	// 获取文件大小
 	info, err := os.Stat(inputPath)
@@ -100,7 +101,7 @@ func DecryptFileStreamingAuto(
 	inputPath, outputPath string,
 	kyberPriv kem.PrivateKey,
 	ecdhPriv *ecdh.PrivateKey,
-	dilithiumPub interface{},
+	dilithiumPub *mode3.PublicKey,
 ) error {
 	// 获取文件大小
 	info, err := os.Stat(inputPath)

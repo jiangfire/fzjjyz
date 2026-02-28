@@ -10,6 +10,7 @@ import (
 	"codeberg.org/jiangfire/fzjjyz/internal/utils"
 	"github.com/cloudflare/circl/kem"
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 )
 
 // HybridPublicKey 混合公钥结构（表达原则：数据结构优先）.
@@ -231,8 +232,8 @@ func GenerateKeyPairParallel() (
 	kyberPriv kem.PrivateKey,
 	ecdhPub *ecdh.PublicKey,
 	ecdhPriv *ecdh.PrivateKey,
-	dilithiumPub interface{},
-	dilithiumPriv interface{},
+	dilithiumPub *mode3.PublicKey,
+	dilithiumPriv *mode3.PrivateKey,
 	err error,
 ) {
 	var wg sync.WaitGroup

@@ -26,7 +26,7 @@ type StreamingEncryptor struct {
 func NewStreamingEncryptor(
 	kyberPub kem.PublicKey,
 	ecdhPub *ecdh.PublicKey,
-	dilithiumPriv interface{},
+	dilithiumPriv *mode3.PrivateKey,
 	bufferSize int,
 ) (*StreamingEncryptor, error) {
 	if bufferSize < MinBufferSize || bufferSize > MaxBufferSize {
@@ -36,23 +36,10 @@ func NewStreamingEncryptor(
 		)
 	}
 
-	// 类型转换
-	var priv *mode3.PrivateKey
-	if dilithiumPriv != nil {
-		var ok bool
-		priv, ok = dilithiumPriv.(*mode3.PrivateKey)
-		if !ok {
-			return nil, utils.NewCryptoError(
-				utils.ErrInvalidKey,
-				"Invalid Dilithium3 private key",
-			)
-		}
-	}
-
 	return &StreamingEncryptor{
 		kyberPub:      kyberPub,
 		ecdhPub:       ecdhPub,
-		dilithiumPriv: priv,
+		dilithiumPriv: dilithiumPriv,
 		bufferSize:    bufferSize,
 		pool:          NewBufferPool(bufferSize),
 	}, nil

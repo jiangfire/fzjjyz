@@ -55,25 +55,3 @@ func GetFileSize(path string) (int64, error) {
 	}
 	return info.Size(), nil
 }
-
-// MustOpen opens a file, panics on failure (safety guaranteed by upper validation).
-//
-//nolint:gosec
-func MustOpen(path string) *os.File {
-	f, err := os.Open(path)
-	if err != nil {
-		panic(err)
-	}
-	return f
-}
-
-// MustCreate creates a file, panics on failure.
-//
-//nolint:gosec
-func MustCreate(path string) *os.File {
-	f, err := os.Create(path)
-	if err != nil {
-		panic(err)
-	}
-	return f
-}

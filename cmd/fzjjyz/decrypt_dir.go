@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
 	"codeberg.org/jiangfire/fzjjyz/internal/i18n"
 	"codeberg.org/jiangfire/fzjjyz/internal/zjcrypto"
+	"github.com/cloudflare/circl/sign/dilithium/mode3"
 	"github.com/spf13/cobra"
 )
 
@@ -48,8 +50,9 @@ func newDecryptDirCmd() *cobra.Command {
 //nolint:gocognit,funlen
 func runDecryptDir(_ *cobra.Command, _ []string) error {
 	// 验证输入文件
-	if _, err := os.Stat(decryptDirInput); err != nil {
-		return fmt.Errorf(i18n.T("error.encrypted_file_not_exists"), decryptDirInput)
+	//nolint:wrapcheck
+	if err := utils.ValidateInputFile(decryptDirInput); err != nil {
+		return err
 	}
 
 	// 验证输出目录（如果已存在）
@@ -73,9 +76,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf(i18n.T("error.cannot_open_file"), err)
 	}
 	defer func() {
-		if closeErr := headerFile.Close(); closeErr != nil && err == nil {
-			err = closeErr
-		}
+		_ = headerFile.Close()
 	}()
 
 	header, err := format.ParseFileHeader(headerFile)
@@ -97,20 +98,20 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 
 	// [1/4] 加载密钥
 	fmt.Printf("\n[1/4] %s ", i18n.T("progress.loading_keys"))
-	hybridPriv, err := zjcrypto.LoadPrivateKeyCached(decryptDirPrivKey)
+	hybridPriv, err := utils.LoadHybridPrivateKey(decryptDirPrivKey)
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
-		return fmt.Errorf("load private key failed: %w",
-			i18n.TranslateError("error.load_private_key_failed", err, decryptDirPrivKey))
+		//nolint:wrapcheck
+		return err
 	}
 
-	var dilithiumPub interface{}
+	var dilithiumPub = (*mode3.PublicKey)(nil)
 	if decryptDirVerifyKey != "" {
-		dilithiumPub, err = zjcrypto.LoadDilithiumPublicKeyCached(decryptDirVerifyKey)
+		dilithiumPub, err = utils.LoadDilithiumVerifyKey(decryptDirVerifyKey)
 		if err != nil {
 			fmt.Println(i18n.T("status.failed"))
-			return fmt.Errorf("load verify key failed: %w",
-				i18n.TranslateError("error.load_verify_key_failed", err, decryptDirVerifyKey))
+			//nolint:wrapcheck
+			return err
 		}
 	} else {
 		fmt.Println(i18n.T("status.warning_no_sign_verify"))
@@ -121,13 +122,7 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 	fmt.Printf("[2/4] %s ", i18n.T("progress.decrypting"))
 
 	// 确定缓冲区大小
-	var bufSize int
-	if decryptDirBufferSize > 0 {
-		bufSize = decryptDirBufferSize * 1024
-	} else {
-		stat, _ := os.Stat(decryptDirInput)
-		bufSize = zjcrypto.OptimalBufferSize(stat.Size())
-	}
+	bufSize := calculateBufferSizeFromFile(decryptDirInput, decryptDirBufferSize)
 
 	if verbose {
 		fmt.Printf(i18n.T("file_info.buffer_size")+"\n", bufSize/1024)
@@ -136,28 +131,14 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 	// 临时文件路径
 	tempZipPath := decryptDirOutput + ".tmp.zip"
 
-	// 执行解密（复用现有流式解密）
-	var decryptFunc func() error
-	if decryptDirStreaming {
-		decryptFunc = func() error {
-			return zjcrypto.DecryptFileStreaming(
-				decryptDirInput, tempZipPath,
-				hybridPriv.Kyber, hybridPriv.ECDH,
-				dilithiumPub,
-				bufSize,
-			)
-		}
-	} else {
-		decryptFunc = func() error {
-			return zjcrypto.DecryptFile(
-				decryptDirInput, tempZipPath,
-				hybridPriv.Kyber, hybridPriv.ECDH,
-				dilithiumPub,
-			)
-		}
-	}
-
-	if err := decryptFunc(); err != nil {
+	if err := runDecryptWithMode(
+		decryptDirInput,
+		tempZipPath,
+		hybridPriv,
+		dilithiumPub,
+		decryptDirStreaming,
+		bufSize,
+	); err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("decrypt failed: %w",
 			i18n.TranslateError("error.decrypt_failed", err))
