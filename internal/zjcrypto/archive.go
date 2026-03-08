@@ -69,6 +69,15 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
+	// 使用 root-scoped API 访问文件，防止遍历回调中的路径竞态问题（G122）
+	root, err := os.OpenRoot(absSource)
+	if err != nil {
+		return fmt.Errorf("open source root: %w", err)
+	}
+	defer func() {
+		_ = root.Close()
+	}()
+
 	// 递归遍历目录
 	//nolint:wrapcheck // filepath.Walk 的错误已在回调中包装，此处直接返回
 	return filepath.Walk(absSource, func(path string, info os.FileInfo, walkErr error) error {
@@ -120,16 +129,14 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 			return fmt.Errorf("create zip file entry: %w", err)
 		}
 
-		// 复制文件内容 - G304: path 是通过 filepath.Walk 遍历得到的，已验证在源目录内
-		file, err := os.Open(path) //nolint:gosec
-		if err != nil {
-			return fmt.Errorf("open file %s: %w", path, err)
-		}
-		defer func() {
-			if closeErr := file.Close(); closeErr != nil && err == nil {
-				err = closeErr
+			// 通过 Root 打开相对路径，避免使用遍历回调中的绝对路径（G122）
+			file, err := root.Open(relPath)
+			if err != nil {
+				return fmt.Errorf("open file %s: %w", path, err)
 			}
-		}()
+			defer func() {
+				_ = file.Close()
+			}()
 
 		_, err = io.Copy(header, file)
 		if err != nil {
