@@ -7,7 +7,7 @@
 
 **fzj** 是一个基于后量子密码学的文件加密工具，提供面向未来的安全保护。
 
-> 🔔 **v1.0.2** - 安全修复版本（签名验证强化、默认输出路径安全收敛、解密明文权限收紧）
+> 🔔 **v1.0.3** - 热修复版本（修复跨平台 Windows 路径解析导致的 CI 失败）
 
 ## 📚 文档导航
 
@@ -153,6 +153,11 @@ fzj encrypt -i project.docx -o project.fzj -p team_public.pem -s my_private.pem
 - 请妥善保管私钥文件，不要与他人分享
 - 建议定期轮换密钥（3-6个月）
 
+### v1.0.3 热修复摘要
+- 修复跨平台路径解析：`decrypt` 默认输出名现在可正确处理 `C:\...` 这类 Windows 风格路径
+- 在 Linux/macOS 环境中同样只取安全文件名，避免保留绝对路径
+- 修复 GitHub CI 用例 `TestSafeDefaultOutputFromHeader/absolute_windows` 失败
+
 ### v1.0.2 安全修复摘要
 - 修复“签名可剥离绕过”：提供 `--verify-key` 时，密文必须携带有效签名
 - 修复默认输出路径风险：`decrypt` 默认输出仅使用头部文件名的 basename
@@ -202,6 +207,6 @@ fzj encrypt -i project.docx -o project.fzj -p team_public.pem -s my_private.pem
 
 **注意**: 这是一个后量子密码学研究项目，旨在探索和演示后量子加密技术。请在理解安全风险的前提下使用。
 
-**当前版本**: v1.0.2
+**当前版本**: v1.0.3
 **最后更新**: 2026-03-08
 **状态**: ✅ 生产就绪 (持续优化中)

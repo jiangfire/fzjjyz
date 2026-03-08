@@ -74,6 +74,17 @@
 
 ---
 
+## [1.0.3] - 2026-03-08
+
+### Fixed
+
+- **跨平台头部路径解析修复** (`cmd/fzjjyz/decrypt.go`)
+  - `safeDefaultOutputFromHeader` 统一兼容 Windows/Unix 风格路径
+  - 在 Linux/macOS runner 上也能正确提取 `C:\...` 的文件名
+  - 修复 `TestSafeDefaultOutputFromHeader/absolute_windows` 失败
+
+---
+
 ## [1.0.2] - 2026-03-08
 
 ### Security
@@ -889,7 +900,7 @@ v0.1.0
 
 ---
 
-**版本**: v1.0.2
+**版本**: v1.0.3
 **最后更新**: 2026-03-08
 **维护者**: fzj 开发团队
 **状态**: ✅ 生产就绪
