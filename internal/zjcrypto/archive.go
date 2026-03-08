@@ -129,14 +129,14 @@ func CreateZipFromDirectory(sourceDir string, output io.Writer, opts ArchiveOpti
 			return fmt.Errorf("create zip file entry: %w", err)
 		}
 
-			// 通过 Root 打开相对路径，避免使用遍历回调中的绝对路径（G122）
-			file, err := root.Open(relPath)
-			if err != nil {
-				return fmt.Errorf("open file %s: %w", path, err)
-			}
-			defer func() {
-				_ = file.Close()
-			}()
+		// 通过 Root 打开相对路径，避免使用遍历回调中的绝对路径（G122）
+		file, err := root.Open(relPath)
+		if err != nil {
+			return fmt.Errorf("open file %s: %w", path, err)
+		}
+		defer func() {
+			_ = file.Close()
+		}()
 
 		_, err = io.Copy(header, file)
 		if err != nil {
@@ -265,7 +265,7 @@ func extractZipFile(file *zip.File, targetPath string) error {
 	}()
 
 	// 创建目标文件 - 使用 O_TRUNC 避免覆盖写时残留旧数据
-	// G304: targetPath 已通过 validateAndExtractPath 验证在 targetDir 内
+	// #nosec G304 - targetPath 已通过 validateAndExtractPath 验证在 targetDir 内
 	dstFile, err := os.OpenFile(
 		targetPath,
 		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
@@ -280,7 +280,7 @@ func extractZipFile(file *zip.File, targetPath string) error {
 
 	// G110: 已通过 totalSize 检查限制总大小（maxTotalSize=1GB），防止解压缩炸弹
 	// io.Copy 的安全性已通过前面的大小检查保证
-	if _, err := io.Copy(dstFile, srcFile); err != nil { //nolint:gosec
+	if _, err := io.Copy(dstFile, srcFile); err != nil { // #nosec G110
 		return fmt.Errorf("copy content to %s: %w", targetPath, err)
 	}
 

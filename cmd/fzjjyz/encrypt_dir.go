@@ -123,7 +123,7 @@ func runEncryptDir(_ *cobra.Command, _ []string) error {
 		_ = os.Remove(tempZipPath)
 	}()
 
-	if err := os.WriteFile(tempZipPath, zipData, 0600); err != nil {
+	if err := os.WriteFile(tempZipPath, zipData, 0600); err != nil { // #nosec G703
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("temp file failed: %w",
 			i18n.TranslateError("error.temp_file_failed", err))

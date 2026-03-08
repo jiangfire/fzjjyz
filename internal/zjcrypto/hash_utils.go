@@ -12,8 +12,8 @@ import (
 func HashFile(path string) ([32]byte, error) {
 	var result [32]byte
 
-	// G304: 调用方应确保 path 是安全的、经过验证的路径
-	file, err := os.Open(path) //nolint:gosec
+	// #nosec G304 - 调用方应确保 path 是安全的、经过验证的路径
+	file, err := os.Open(path)
 	if err != nil {
 		return result, fmt.Errorf("open file: %w", err)
 	}

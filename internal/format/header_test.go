@@ -353,7 +353,7 @@ func TestMarshalBinaryOptimizedConsistency(t *testing.T) {
 				Magic:       [4]byte{'F', 'Z', 'J', 0x01},
 				Version:     0x0100,
 				Algorithm:   0x02,
-				FilenameLen: byte(len(tc.filename)),
+				FilenameLen: uint16(len(tc.filename)),
 				Filename:    tc.filename,
 				FileSize:    1024,
 				// #nosec G115 - 测试数据，不会溢出
@@ -536,7 +536,7 @@ func TestMarshalBinaryWithRealData(t *testing.T) {
 		Version:     0x0100,
 		Algorithm:   0x02,
 		Flags:       0x00,
-		FilenameLen: byte(len(filename)),
+		FilenameLen: uint16(len(filename)),
 		FileSize:    10485760,
 		// #nosec G115 - 测试数据，不会溢出
 		Timestamp:   uint32(time.Now().Unix()),

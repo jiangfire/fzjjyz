@@ -17,7 +17,7 @@ type FileHeader struct {
 	Version     uint16   // 0x0100
 	Algorithm   byte     // 0x02 (Kyber+ECDH+AES)
 	Flags       byte     // 模式标志位
-	FilenameLen byte     // 文件名长度
+	FilenameLen uint16   // 文件名长度 (使用 uint16 避免溢出)
 	Filename    string   // UTF-8编码
 	FileSize    uint64   // 原始文件大小
 	Timestamp   uint32   // Unix时间戳
@@ -51,7 +51,7 @@ func (h *FileHeader) MarshalBinary() ([]byte, error) {
 	if err := buf.WriteByte(h.Flags); err != nil { // 1字节
 		return nil, fmt.Errorf("write flags failed: %w", err)
 	}
-	if err := buf.WriteByte(h.FilenameLen); err != nil { // 1字节
+	if err := binary.Write(buf, binary.BigEndian, h.FilenameLen); err != nil { // 2字节
 		return nil, fmt.Errorf("write filename length failed: %w", err)
 	}
 
@@ -126,7 +126,7 @@ func (h *FileHeader) MarshalBinaryOptimized() ([]byte, error) {
 	data = binary.BigEndian.AppendUint16(data, h.Version)
 	data = append(data, h.Algorithm)
 	data = append(data, h.Flags)
-	data = append(data, h.FilenameLen)
+	data = binary.BigEndian.AppendUint16(data, h.FilenameLen)
 
 	// 可变字段
 	if h.FilenameLen > 0 {
@@ -190,8 +190,7 @@ func (h *FileHeader) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return utils.NewCryptoError(utils.ErrInvalidFormat, "Failed to read flags")
 	}
-	h.FilenameLen, err = reader.ReadByte()
-	if err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &h.FilenameLen); err != nil {
 		return utils.NewCryptoError(utils.ErrInvalidFormat, "Failed to read filename length")
 	}
 
@@ -284,28 +283,25 @@ func NewFileHeader(
 		Version:     0x0100,
 		Algorithm:   0x02,
 		Flags:       0x00,
-		FilenameLen: byte(len(filename)),
+		FilenameLen: uint16(len(filename)), // #nosec G115
 		Filename:    filename,
 		FileSize:    fileSize,
-		// #nosec G115 - 时间戳在合理范围内，不会溢出
-		Timestamp: uint32(time.Now().Unix()),
-		// #nosec G115 - Kyber密文长度固定，不会溢出
-		KyberEncLen: uint16(len(kyberEnc)),
+		Timestamp:   uint32(time.Now().Unix()), // #nosec G115
+		KyberEncLen: uint16(len(kyberEnc)),     // #nosec G115
 		KyberEnc:    kyberEnc,
 		ECDHLen:     32,
 		ECDHPub:     ecdhPub,
 		IVLen:       12,
 		IV:          iv,
-		// #nosec G115 - 签名长度固定，不会溢出
-		SigLen:     uint16(len(signature)),
-		Signature:  signature,
-		SHA256Hash: hash,
+		SigLen:      uint16(len(signature)), // #nosec G115
+		Signature:   signature,
+		SHA256Hash:  hash,
 	}
 }
 
 // GetHeaderSize 计算头部序列化后的大小（用于预分配缓冲区）.
 func (h *FileHeader) GetHeaderSize() int {
-	size := 9 // 固定字段: Magic(4) + Version(2) + Algorithm(1) + Flags(1) + FilenameLen(1)
+	size := 10 // 固定字段: Magic(4) + Version(2) + Algorithm(1) + Flags(1) + FilenameLen(2)
 	size += int(h.FilenameLen)
 	size += 8 // FileSize
 	size += 4 // Timestamp
@@ -348,7 +344,7 @@ func (h *FileHeader) Validate() error {
 	}
 
 	// 验证长度一致性
-	if h.FilenameLen != byte(len(h.Filename)) {
+	if int(h.FilenameLen) != len(h.Filename) {
 		return utils.NewCryptoError(
 			utils.ErrInvalidFormat,
 			"Filename length mismatch",

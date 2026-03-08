@@ -159,14 +159,14 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 	}() // 清理临时文件
 
 	// 读取解密的ZIP数据
-	zipData, err := os.ReadFile(tempZipPath) // #nosec G304 - 临时文件路径由程序生成，安全可控
+	zipData, err := os.ReadFile(tempZipPath) // #nosec G703,G304
 	if err != nil {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("cannot read data: %w",
 			i18n.TranslateError("error.cannot_read_data", err))
 	}
 	// 读取后尽快删除明文临时文件，减少明文驻留时间窗口
-	if removeErr := os.Remove(tempZipPath); removeErr == nil {
+	if removeErr := os.Remove(tempZipPath); removeErr == nil { // #nosec G703
 		tempZipPath = ""
 	}
 

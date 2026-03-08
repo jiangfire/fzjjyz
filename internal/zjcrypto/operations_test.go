@@ -283,7 +283,7 @@ func TestEncryptedFileFormat(t *testing.T) {
 	}
 
 	// 验证头部大小
-	expectedSize := 9 + len(header.Filename) + 8 + 4 + 2 + 1088 + 1 + 32 + 1 + 12 + 2 + int(header.SigLen) + 32
+	expectedSize := 10 + len(header.Filename) + 8 + 4 + 2 + 1088 + 1 + 32 + 1 + 12 + 2 + int(header.SigLen) + 32
 	if header.GetHeaderSize() != expectedSize {
 		t.Errorf("头部大小计算错误: 期望 %d, 得到 %d", expectedSize, header.GetHeaderSize())
 	}
