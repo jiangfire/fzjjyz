@@ -15,7 +15,7 @@ const (
 
 // 这些变量会在发布构建时通过 -ldflags -X 注入。
 var (
-	Version   = "1.0.1"
+	Version   = "1.0.2"
 	BuildTime = "unknown"
 	GitCommit = "unknown"
 )

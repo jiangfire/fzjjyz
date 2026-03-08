@@ -184,12 +184,13 @@ Examples:
 
 	// keymanage 命令
 	"keymanage.short": "Key management tool",
-	"keymanage.long": `Manage encryption keys, supporting export, import, and verification operations.
+	"keymanage.long": `Manage encryption keys, supporting export, import, verification, and cache-info operations.
 
-Available operations:
-  export    Extract and export public key from private key file
-  import    Import key files to specified directory
-  verify    Verify key pair matching
+	Available operations:
+	  export    Extract and export public key from private key file
+	  import    Import key files to specified directory
+	  verify    Verify key pair matching
+	  cache-info Show key cache statistics
 
 Examples:
   # Export public key
@@ -198,9 +199,12 @@ Examples:
   # Verify key pair
   fzj keymanage verify --public-key public.pem --private-key private.pem
 
-  # Import keys
-  fzj keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
-	"keymanage.flags.action":      "Action type: export/import/verify (required)",
+	  # Import keys
+	  fzj keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys
+
+	  # Show cache info
+	  fzj keymanage -a cache-info`,
+	"keymanage.flags.action":      "Action type: export/import/verify/cache-info (required)",
 	"keymanage.flags.public-key":  "Public key file path",
 	"keymanage.flags.private-key": "Private key file path",
 	"keymanage.flags.output":      "Output file path (for export)",
@@ -251,6 +255,7 @@ Examples:
 	"status.success_export":  "✅ Public key exported to: %s",
 	"status.success_import":  "✅ Keys imported to: %s",
 	"status.success_verify":  "✅ Key pair verified",
+	"status.cache_info":      "Cache information:",
 	"status.failed_verify":   "❌ Key pair mismatch",
 	"status.encrypting_file": "Encrypting file: %s",
 	"status.decrypting_file": "Decrypting file: %s",
@@ -329,8 +334,11 @@ Examples:
   • %s (signature private key - 0600 permissions)`,
 
 	// Key verification info
-	"keymanage_verify.kyber": "  Kyber:  %s",
-	"keymanage_verify.ecdh":  "  ECDH:   %s",
+	"keymanage_verify.kyber":       "  Kyber:  %s",
+	"keymanage_verify.ecdh":        "  ECDH:   %s",
+	"keymanage_info.cache_total":   "  Total entries: %d",
+	"keymanage_info.cache_expired": "  Expired: %d",
+	"keymanage_info.cache_size":    "  Estimated size: %d bytes",
 
 	// Security warnings
 	"security.warning":        "⚠️  Security warning:",
@@ -444,7 +452,7 @@ Possible causes:
 	"error.validate_header_failed": "Failed to validate file header: %v",
 
 	// Error messages - Other
-	"error.unknown_action":         "Unknown action: %s (supported: export, import, verify)",
+	"error.unknown_action":         "Unknown action: %s (supported: export, import, verify, cache-info)",
 	"error.missing_required_flags": "Must provide %s",
 	"error.missing_both_keys":      "Must provide --public-key and --private-key",
 	"error.nothing_to_do":          "Nothing to do",

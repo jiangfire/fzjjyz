@@ -184,12 +184,13 @@ var zhTranslations = map[string]string{
 
 	// keymanage 命令
 	"keymanage.short": "密钥管理工具",
-	"keymanage.long": `管理加密密钥，支持导出、导入和验证操作。
+	"keymanage.long": `管理加密密钥，支持导出、导入、验证和缓存信息查看操作。
 
-可用操作:
-  export    从私钥文件中提取并导出公钥
-  import    导入密钥文件到指定目录
-  verify    验证密钥对是否匹配
+	可用操作:
+	  export    从私钥文件中提取并导出公钥
+	  import    导入密钥文件到指定目录
+	  verify    验证密钥对是否匹配
+	  cache-info 查看密钥缓存统计信息
 
 示例:
   # 导出公钥
@@ -198,9 +199,12 @@ var zhTranslations = map[string]string{
   # 验证密钥对
   fzj keymanage verify --public-key public.pem --private-key private.pem
 
-  # 导入密钥
-  fzj keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys`,
-	"keymanage.flags.action":      "操作类型: export/import/verify (必需)",
+	  # 导入密钥
+	  fzj keymanage import --public-key pub.pem --private-key priv.pem --output-dir ./keys
+
+	  # 查看缓存信息
+	  fzj keymanage -a cache-info`,
+	"keymanage.flags.action":      "操作类型: export/import/verify/cache-info (必需)",
 	"keymanage.flags.public-key":  "公钥文件路径",
 	"keymanage.flags.private-key": "私钥文件路径",
 	"keymanage.flags.output":      "输出文件路径 (用于export)",
@@ -250,6 +254,7 @@ var zhTranslations = map[string]string{
 	"status.success_export":         "✅ 公钥已导出到: %s",
 	"status.success_import":         "✅ 密钥已导入到: %s",
 	"status.success_verify":         "✅ 密钥对验证通过",
+	"status.cache_info":             "缓存信息:",
 	"status.failed_verify":          "❌ 密钥对不匹配",
 	"status.encrypting_file":        "加密文件: %s",
 	"status.decrypting_file":        "解密文件: %s",
@@ -328,8 +333,11 @@ var zhTranslations = map[string]string{
   • %s (签名私钥 - 0600权限)`,
 
 	// 密钥验证信息
-	"keymanage_verify.kyber": "  Kyber:  %s",
-	"keymanage_verify.ecdh":  "  ECDH:   %s",
+	"keymanage_verify.kyber":       "  Kyber:  %s",
+	"keymanage_verify.ecdh":        "  ECDH:   %s",
+	"keymanage_info.cache_total":   "  总条目: %d",
+	"keymanage_info.cache_expired": "  已过期: %d",
+	"keymanage_info.cache_size":    "  估算大小: %d bytes",
 
 	// 安全提示
 	"security.warning":        "⚠️  安全提示:",
@@ -443,7 +451,7 @@ var zhTranslations = map[string]string{
 	"error.validate_header_failed": "文件头验证失败: %v",
 
 	// 错误信息 - 其他
-	"error.unknown_action":         "未知操作: %s (支持: export, import, verify)",
+	"error.unknown_action":         "未知操作: %s (支持: export, import, verify, cache-info)",
 	"error.missing_required_flags": "必须提供 %s",
 	"error.missing_both_keys":      "必须提供 --public-key 和 --private-key",
 	"error.nothing_to_do":          "没有可执行的操作",

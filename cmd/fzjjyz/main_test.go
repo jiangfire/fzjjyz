@@ -224,6 +224,20 @@ func TestCLIIntegration(t *testing.T) {
 		t.Logf("✅ 密钥验证成功\n输出: %s", output)
 	})
 
+	t.Run("6.1 密钥管理 - 缓存信息", func(t *testing.T) {
+		cmd := exec.Command(executable, "keymanage",
+			"-a", "cache-info",
+		) // #nosec G204 - 测试环境执行命令
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("缓存信息查询失败: %v\n输出: %s", err, output)
+		}
+		if len(bytes.TrimSpace(output)) == 0 {
+			t.Fatalf("缓存信息输出为空")
+		}
+		t.Logf("✅ 缓存信息查询成功\n输出: %s", output)
+	})
+
 	t.Run("7. 密钥管理 - 导入密钥", func(t *testing.T) {
 		importDir := filepath.Join(testDir, "imported")
 		// #nosec G301 - 测试环境使用标准权限

@@ -99,10 +99,24 @@ func parseDecryptHeader() (*format.FileHeader, error) {
 
 	// 设置默认输出路径
 	if decryptOutput == "" {
-		decryptOutput = header.Filename
+		defaultOutput, err := safeDefaultOutputFromHeader(header.Filename)
+		if err != nil {
+			return nil, err
+		}
+		decryptOutput = defaultOutput
 	}
 
 	return header, nil
+}
+
+// safeDefaultOutputFromHeader 将头部文件名安全转换为默认输出路径。
+// 只保留 basename，避免路径穿越和绝对路径写入。
+func safeDefaultOutputFromHeader(headerFilename string) (string, error) {
+	clean := filepath.Base(filepath.Clean(headerFilename))
+	if clean == "" || clean == "." || clean == ".." {
+		return "", fmt.Errorf("invalid filename in encrypted header: %q", headerFilename)
+	}
+	return clean, nil
 }
 
 func loadDecryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPrivateKey, *mode3.PublicKey, error) {

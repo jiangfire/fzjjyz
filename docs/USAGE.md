@@ -12,7 +12,7 @@ fzj 是一个命令行工具，提供 8 个核心命令：
 4. **encrypt-dir** - 加密文件夹（打包 + 加密）
 5. **decrypt-dir** - 解密文件夹（解密 + 解包）
 6. **info** - 查看加密文件信息
-7. **keymanage** - 密钥管理（导出/导入/验证）
+7. **keymanage** - 密钥管理（导出/导入/验证/缓存信息）
 8. **version** - 版本信息
 
 ### 国际化支持
@@ -277,7 +277,7 @@ fzj decrypt -i <输入文件> -o <输出文件> -p <私钥> -s <验证公钥> [f
 3. **密钥解封装**: Kyber768 + ECDH 密钥恢复
 4. **数据解密**: AES-256-GCM 解密（自动验证认证标签）
 5. **哈希验证**: SHA256 完整性检查
-6. **签名验证**: Dilithium3 签名验证（如果提供）
+6. **签名验证**: Dilithium3 签名验证（如果提供 `--verify-key` 则强制执行）
 7. **恢复文件**: 使用原始文件名或指定路径
 
 ### 使用示例
@@ -327,7 +327,7 @@ fzj decrypt -i data.fzj -o data.txt -p keys/mykey_private.pem
 
 #### 使用原始文件名
 ```bash
-# 不指定 -o，会自动使用文件头中的原始文件名
+# 不指定 -o，会自动使用文件头中的原始文件名（已做 basename 安全清洗）
 fzj decrypt -i secret.fzj -p keys/mykey_private.pem -s keys/public.pem
 # 输出: secret.txt (原始文件名)
 ```
@@ -805,18 +805,10 @@ fzj keymanage -a cache-info
 
 **示例**:
 ```
-密钥缓存信息:
-  缓存条目: 3/100
-  命中率: 85.7%
-  总加载次数: 21
-  总命中次数: 18
-  过期时间: 1小时
-  后台清理: 每5分钟
-
-缓存条目:
-  • keys/public.pem (过期: 45分钟)
-  • keys/backup.pem (过期: 52分钟)
-  • keys/production.pem (过期: 23分钟)
+缓存信息:
+  总条目: 3
+  已过期: 1
+  估算大小: 300 bytes
 ```
 
 ---
@@ -1204,8 +1196,8 @@ fzj decrypt -i file.fzj -p key.pem --verbose 2>&1 | tee error.log
 
 ---
 
-**版本**: v0.2.0
-**最后更新**: 2025-12-30
+**版本**: v1.0.2
+**最后更新**: 2026-03-08
 **维护者**: fzj 开发团队
 
 ---

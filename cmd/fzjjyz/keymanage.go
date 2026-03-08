@@ -47,6 +47,8 @@ func runKeymanage(_ *cobra.Command, _ []string) error {
 		return runImport()
 	case "verify":
 		return runVerify()
+	case "cache-info":
+		return runCacheInfo()
 	default:
 		return fmt.Errorf(i18n.T("error.unknown_action"), keymanageAction)
 	}
@@ -197,6 +199,18 @@ func runVerify() error {
 		return fmt.Errorf("verify keys failed: %w",
 			i18n.TranslateError("error.verify_keys_failed"))
 	}
+
+	return nil
+}
+
+// cache-info: 查看密钥缓存状态.
+func runCacheInfo() error {
+	total, expired, estimatedSize := zjcrypto.GetCacheInfo()
+
+	fmt.Println(i18n.T("status.cache_info"))
+	fmt.Printf(i18n.T("keymanage_info.cache_total")+"\n", total)
+	fmt.Printf(i18n.T("keymanage_info.cache_expired")+"\n", expired)
+	fmt.Printf(i18n.T("keymanage_info.cache_size")+"\n", estimatedSize)
 
 	return nil
 }

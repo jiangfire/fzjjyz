@@ -17,7 +17,7 @@ const (
 	// encryptedFilePerm 加密文件权限。
 	encryptedFilePerm = 0644
 	// decryptedFilePerm 解密文件权限。
-	decryptedFilePerm = 0644
+	decryptedFilePerm = 0600
 )
 
 // EncryptionData 包含加密所需的所有数据.
@@ -197,8 +197,27 @@ func verifyDecryptionIntegrity(plaintext []byte, header *format.FileHeader, dili
 		)
 	}
 
-	// 验证签名（如果提供）
-	if dilithiumPub != nil && header.SigLen > 0 {
+	// 验证签名：只要调用方提供验签公钥，就必须存在有效签名
+	if dilithiumPub != nil {
+		if header.SigLen == 0 || len(header.Signature) == 0 {
+			return utils.NewCryptoError(
+				utils.ErrVerificationFailed,
+				"Missing signature in encrypted file while verification key is provided",
+			)
+		}
+		if int(header.SigLen) != len(header.Signature) {
+			return utils.NewCryptoError(
+				utils.ErrVerificationFailed,
+				"Signature length mismatch",
+			)
+		}
+		if len(header.Signature) != mode3.SignatureSize {
+			return utils.NewCryptoError(
+				utils.ErrVerificationFailed,
+				"Invalid signature size",
+			)
+		}
+
 		valid, err := verifyHashSignature(hash[:], header.Signature, dilithiumPub)
 		if err != nil {
 			return utils.NewCryptoError(

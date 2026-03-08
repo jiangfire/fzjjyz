@@ -128,8 +128,17 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 		fmt.Printf(i18n.T("file_info.buffer_size")+"\n", bufSize/1024)
 	}
 
-	// 临时文件路径
-	tempZipPath := decryptDirOutput + ".tmp.zip"
+	// 使用随机临时文件，避免固定路径带来的覆盖和竞争风险
+	tempZipFile, err := os.CreateTemp("", "fzjjyz-decrypt-*.zip")
+	if err != nil {
+		fmt.Println(i18n.T("status.failed"))
+		return fmt.Errorf(i18n.T("error.cannot_open_temp"), err)
+	}
+	tempZipPath := tempZipFile.Name()
+	if closeErr := tempZipFile.Close(); closeErr != nil {
+		fmt.Println(i18n.T("status.failed"))
+		return fmt.Errorf(i18n.T("error.cannot_open_temp"), closeErr)
+	}
 
 	if err := runDecryptWithMode(
 		decryptDirInput,
@@ -155,6 +164,10 @@ func runDecryptDir(_ *cobra.Command, _ []string) error {
 		fmt.Println(i18n.T("status.failed"))
 		return fmt.Errorf("cannot read data: %w",
 			i18n.TranslateError("error.cannot_read_data", err))
+	}
+	// 读取后尽快删除明文临时文件，减少明文驻留时间窗口
+	if removeErr := os.Remove(tempZipPath); removeErr == nil {
+		tempZipPath = ""
 	}
 
 	zipSize := len(zipData)

@@ -3,6 +3,7 @@ package zjcrypto
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"os"
 	"path/filepath"
 	"testing"
@@ -62,6 +63,66 @@ func TestEncryptFile(t *testing.T) {
 
 	if !bytes.Equal(originalData, decryptedData) {
 		t.Errorf("解密数据不匹配\n原始: %s\n解密: %s", originalData, decryptedData)
+	}
+}
+
+// TestDecryptRejectsSignatureStripping 验证提供验签公钥时，签名剥离会被拒绝。
+func TestDecryptRejectsSignatureStripping(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "fzjjyz-test-*")
+	if err != nil {
+		t.Fatalf("创建临时目录失败: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Logf("警告: 清理临时目录失败: %v", err)
+		}
+	}()
+
+	kyberPub, kyberPriv, _ := GenerateKyberKeys()
+	ecdhPub, ecdhPriv, _ := GenerateECDHKeys()
+	dilithiumPub, dilithiumPriv, _ := GenerateDilithiumKeys()
+
+	plainPath := filepath.Join(tmpDir, "plain.txt")
+	encPath := filepath.Join(tmpDir, "plain.fzj")
+	tamperedPath := filepath.Join(tmpDir, "plain_tampered.fzj")
+	outPath := filepath.Join(tmpDir, "plain.out")
+
+	if err := os.WriteFile(plainPath, []byte("signature-strip-check"), 0600); err != nil {
+		t.Fatalf("写入明文失败: %v", err)
+	}
+	if err := EncryptFile(plainPath, encPath, kyberPub, ecdhPub, dilithiumPriv); err != nil {
+		t.Fatalf("加密失败: %v", err)
+	}
+
+	data, err := os.ReadFile(encPath) //nolint:gosec
+	if err != nil {
+		t.Fatalf("读取加密文件失败: %v", err)
+	}
+	header, err := format.ParseFileHeaderFromBytes(data)
+	if err != nil {
+		t.Fatalf("解析头部失败: %v", err)
+	}
+
+	filenameLen := int(header.FilenameLen)
+	sigLenPos := 9 + filenameLen + 8 + 4 + 2 + int(header.KyberEncLen) + 1 + int(header.ECDHLen) + 1 + int(header.IVLen)
+	sigStart := sigLenPos + 2
+	sigEnd := sigStart + int(header.SigLen)
+	if sigEnd > len(data) {
+		t.Fatalf("签名区域越界: sigEnd=%d len=%d", sigEnd, len(data))
+	}
+
+	// 篡改 SigLen=0，并删除签名数据，模拟签名剥离攻击。
+	binary.BigEndian.PutUint16(data[sigLenPos:sigLenPos+2], 0)
+	tampered := append([]byte{}, data[:sigStart]...)
+	tampered = append(tampered, data[sigEnd:]...)
+
+	if err := os.WriteFile(tamperedPath, tampered, 0600); err != nil {
+		t.Fatalf("写入篡改文件失败: %v", err)
+	}
+
+	err = DecryptFile(tamperedPath, outPath, kyberPriv, ecdhPriv, dilithiumPub)
+	if err == nil {
+		t.Fatal("期望签名剥离攻击被拒绝，但解密成功")
 	}
 }
 
