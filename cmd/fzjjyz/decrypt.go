@@ -4,7 +4,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"codeberg.org/jiangfire/fzjjyz/cmd/fzjjyz/utils"
 	"codeberg.org/jiangfire/fzjjyz/internal/format"
@@ -112,11 +114,18 @@ func parseDecryptHeader() (*format.FileHeader, error) {
 // safeDefaultOutputFromHeader 将头部文件名安全转换为默认输出路径。
 // 只保留 basename，避免路径穿越和绝对路径写入。
 func safeDefaultOutputFromHeader(headerFilename string) (string, error) {
-	clean := filepath.Base(filepath.Clean(headerFilename))
-	if clean == "" || clean == "." || clean == ".." {
+	// 使用 '/' 统一分隔符，确保在不同平台都能正确处理 Windows/Unix 风格路径。
+	normalized := strings.ReplaceAll(headerFilename, `\`, `/`)
+	clean := path.Clean(normalized)
+	base := path.Base(clean)
+
+	if base == "" || base == "." || base == ".." {
 		return "", fmt.Errorf("invalid filename in encrypted header: %q", headerFilename)
 	}
-	return clean, nil
+	if strings.Contains(base, "/") || strings.Contains(base, `\`) {
+		return "", fmt.Errorf("invalid filename in encrypted header: %q", headerFilename)
+	}
+	return base, nil
 }
 
 func loadDecryptKeys(reporter *utils.ProgressReporter) (*zjcrypto.HybridPrivateKey, *mode3.PublicKey, error) {
