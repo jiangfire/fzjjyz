@@ -74,6 +74,23 @@
 
 ---
 
+## [1.0.4] - 2026-03-08
+
+### Security
+
+- **目录打包访问加固** (`internal/zjcrypto/archive.go`)
+  - 在目录遍历打包流程中改用 `os.OpenRoot(...).Open(...)` 访问文件
+  - 降低路径遍历回调中的 TOCTOU 风险，修复 `gosec` 的 `G122` 告警
+
+### Fixed
+
+- **CI 安全审计稳定性修复** (`.github/workflows/test.yml`)
+  - `GO_VERSION` 固定为 `1.25.8`，规避 `os@go1.25.7` 漏洞告警
+  - `github.com/cloudflare/circl` 升级到 `v1.6.3`
+  - `govulncheck` 与 `gosec` 审计流程恢复通过
+
+---
+
 ## [1.0.3] - 2026-03-08
 
 ### Fixed
@@ -900,7 +917,7 @@ v0.1.0
 
 ---
 
-**版本**: v1.0.3
+**版本**: v1.0.4
 **最后更新**: 2026-03-08
 **维护者**: fzj 开发团队
 **状态**: ✅ 生产就绪
